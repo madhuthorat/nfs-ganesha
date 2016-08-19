@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_9d7ab424",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1003947
+      },
+      "writtenOn": "2016-08-19T14:05:53Z",
+      "side": 1,
+      "message": "It would be nice to have one line summary of a git commit message. For this commit, something like, \"Use ext_setquota_args for RQUOTA version 2\" sounds good.\n\nYour description clearly says what you are doing. It would be nice to have a description of the problem as well, something like \"rquota_setquota() uses incorrect setquota_args structure for RQUOTA version 2 resulting in using incorrect values for setting quota. It should use ext_setquota_args\"",
+      "revId": "299763cd73919152e1ed043cc5cdc491fd76289f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_7d77f03b",
+        "filename": "src/Protocols/RQUOTA/rquota_setquota.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1003947
+      },
+      "writtenOn": "2016-08-19T14:05:53Z",
+      "side": 1,
+      "message": "seem to have an empty space at the end, checkpatch would fail!",
+      "revId": "299763cd73919152e1ed043cc5cdc491fd76289f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
