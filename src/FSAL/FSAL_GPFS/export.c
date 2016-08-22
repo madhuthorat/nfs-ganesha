@@ -48,7 +48,6 @@
 #include "pnfs_utils.h"
 #include "mdcache.h"
 
-/* test */
 /* export object methods
  */
 
