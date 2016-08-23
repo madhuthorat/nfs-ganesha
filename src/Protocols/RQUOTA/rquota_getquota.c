@@ -55,6 +55,8 @@ int rquota_getquota(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 	struct gsh_export *exp;
 	char *quota_path;
 	getquota_rslt *qres = &res->res_rquota_getquota;
+	struct gsh_export *root_export;
+	char pathp[MAXPATHLEN] = {0};
 
 	LogFullDebug(COMPONENT_NFSPROTO,
 		     "REQUEST PROCESSING: Calling rquota_getquota");
@@ -63,12 +65,16 @@ int rquota_getquota(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 		quota_type = arg->arg_ext_rquota_getquota.gqa_type;
 	qres->status = Q_EPERM;
 
-	if (arg->arg_rquota_getquota.gqa_pathp[0] == '/') {
-		exp = get_gsh_export_by_path(arg->arg_rquota_getquota.gqa_pathp,
-					     false);
-		if (exp == NULL)
-			goto out;
-		quota_path = arg->arg_rquota_getquota.gqa_pathp;
+	if (arg->arg_rquota_getquota.gqa_pathp[0] != '/') {
+		/* prepend pseudo root */
+		root_export = get_gsh_export(0);
+		strcpy(pathp, root_export->pseudopath);
+	}
+	strcat(pathp, arg->arg_rquota_getquota.gqa_pathp);
+
+	exp = get_gsh_export_by_path(pathp, false);
+	if (exp != NULL) {
+		quota_path = pathp;
 	} else {
 		exp =
 		    get_gsh_export_by_tag(arg->arg_rquota_getquota.gqa_pathp);
