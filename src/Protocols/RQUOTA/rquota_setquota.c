@@ -37,7 +37,10 @@
 #include "nfs_proto_functions.h"
 #include "export_mgr.h"
 
-static int do_rquota_setquota(char *quota_path, int quota_type, sq_dqblk *quota_dqblk, setquota_rslt *qres);
+static int do_rquota_setquota(char *quota_path, int quota_type,
+			      int quota_id,
+			      sq_dqblk * quota_dqblk,
+			      setquota_rslt * qres);
 
 /**
  * @brief The Rquota setquota function, for all versions.
@@ -51,28 +54,35 @@ static int do_rquota_setquota(char *quota_path, int quota_type, sq_dqblk *quota_
  */
 int rquota_setquota(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 {
-        char *quota_path;
-        int quota_type = USRQUOTA;
-        struct sq_dqblk *quota_dqblk;
-        setquota_rslt *qres = &res->res_rquota_setquota;
+	char *quota_path;
+	int quota_id;
+	int quota_type = USRQUOTA;
+	struct sq_dqblk *quota_dqblk;
+	setquota_rslt *qres = &res->res_rquota_setquota;
 
-        LogFullDebug(COMPONENT_NFSPROTO,
-                     "REQUEST PROCESSING: Calling rquota_setquota");
+	LogFullDebug(COMPONENT_NFSPROTO,
+		     "REQUEST PROCESSING: Calling rquota_setquota");
 
-        /* check rquota version and extract arguments */
-        if (req->rq_vers == EXT_RQUOTAVERS) {
-                quota_path = arg->arg_ext_rquota_setquota.sqa_pathp;
-                quota_type = arg->arg_ext_rquota_setquota.sqa_type;
-                quota_dqblk = &arg->arg_ext_rquota_setquota.sqa_dqblk;
-        } else {
-                quota_path = arg->arg_rquota_setquota.sqa_pathp;
-                quota_dqblk = &arg->arg_rquota_setquota.sqa_dqblk;
-        }
+	/* check rquota version and extract arguments */
+	if (req->rq_vers == EXT_RQUOTAVERS) {
+		quota_path = arg->arg_ext_rquota_setquota.sqa_pathp;
+		quota_id = arg->arg_ext_rquota_setquota.sqa_id;
+		quota_type = arg->arg_ext_rquota_setquota.sqa_type;
+		quota_dqblk = &arg->arg_ext_rquota_setquota.sqa_dqblk;
+	} else {
+		quota_path = arg->arg_rquota_setquota.sqa_pathp;
+		quota_id = arg->arg_rquota_setquota.sqa_id;
+		quota_dqblk = &arg->arg_rquota_setquota.sqa_dqblk;
+	}
 
-        return do_rquota_setquota(quota_path, quota_type, quota_dqblk, qres);
+	return do_rquota_setquota(quota_path, quota_type,
+				  quota_id, quota_dqblk, qres);
 }                               /* rquota_setquota */
 
-static int do_rquota_setquota(char *quota_path, int quota_type, sq_dqblk *quota_dqblk, setquota_rslt *qres)
+static int do_rquota_setquota(char *quota_path, int quota_type,
+			      int quota_id,
+			      sq_dqblk *quota_dqblk,
+			      setquota_rslt *qres)
 {
 	fsal_status_t fsal_status;
 	fsal_quota_t fsal_quota_in;
@@ -115,6 +125,7 @@ static int do_rquota_setquota(char *quota_path, int quota_type, sq_dqblk *quota_
 
 	fsal_status = exp->fsal_export->exp_ops.set_quota(exp->fsal_export,
 						       qpath, quota_type,
+						       quota_id,
 						       &fsal_quota_in,
 						       &fsal_quota_out);
 	if (FSAL_IS_ERROR(fsal_status)) {

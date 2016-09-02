@@ -233,6 +233,7 @@ static uint32_t fs_xattr_access_rights(struct fsal_export *exp_hdl)
 
 static fsal_status_t get_quota(struct fsal_export *exp_hdl,
 			       const char *filepath, int quota_type,
+			       int quota_id,
 			       fsal_quota_t *pquota)
 {
 	struct vfs_fsal_export *myself;
@@ -284,6 +285,7 @@ static fsal_status_t get_quota(struct fsal_export *exp_hdl,
 
 static fsal_status_t set_quota(struct fsal_export *exp_hdl,
 			       const char *filepath, int quota_type,
+			       int quota_id,
 			       fsal_quota_t *pquota, fsal_quota_t *presquota)
 {
 	struct vfs_fsal_export *myself;
@@ -341,7 +343,7 @@ static fsal_status_t set_quota(struct fsal_export *exp_hdl,
 	}
 	if (presquota != NULL)
 		return get_quota(exp_hdl, filepath, quota_type,
-				 presquota);
+				 quota_id, presquota);
 
  err:
 	return fsalstat(fsal_error, retval);
