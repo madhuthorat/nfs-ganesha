@@ -227,6 +227,7 @@ static fsal_status_t get_quota(struct fsal_export *exp_hdl,
 	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
 	int retval;
 	struct quotactl_arg args;
+	int errsv;
 
 	myself = container_of(exp_hdl, struct gpfs_fsal_export, export);
 	retval = stat(filepath, &path_stat);
@@ -256,9 +257,12 @@ static fsal_status_t get_quota(struct fsal_export *exp_hdl,
 
 	fsal_set_credentials(op_ctx->creds);
 	retval = gpfs_ganesha(OPENHANDLE_QUOTA, &args);
+	errsv = errno;
+	fsal_restore_ganesha_credentials();
+
 	if (retval < 0) {
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
+		fsal_error = posix2fsal_error(errsv);
+		retval = errsv;
 		goto out;
 	}
 	pquota->bhardlimit = fs_quota.blockHardLimit;
@@ -290,6 +294,7 @@ static fsal_status_t set_quota(struct fsal_export *exp_hdl,
 	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
 	int retval;
 	struct quotactl_arg args;
+	int errsv;
 
 	myself = container_of(exp_hdl, struct gpfs_fsal_export, export);
 	retval = stat(filepath, &path_stat);
@@ -337,9 +342,12 @@ static fsal_status_t set_quota(struct fsal_export *exp_hdl,
 
 	fsal_set_credentials(op_ctx->creds);
 	retval = gpfs_ganesha(OPENHANDLE_QUOTA, &args);
+	errsv = errno;
+	fsal_restore_ganesha_credentials();
+
 	if (retval < 0) {
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
+		fsal_error = posix2fsal_error(errsv);
+		retval = errsv;
 		goto err;
 	}
 	if (presquota != NULL)
@@ -448,6 +456,7 @@ void gpfs_export_ops_init(struct export_ops *ops)
 	ops->get_quota = get_quota;
 	ops->set_quota = set_quota;
 	ops->get_write_verifier = gpfs_verifier;
+	ops->alloc_state = gpfs_alloc_state;
 }
 
 static void free_gpfs_filesystem(struct gpfs_filesystem *gpfs_fs)
