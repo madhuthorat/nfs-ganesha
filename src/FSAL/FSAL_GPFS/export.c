@@ -28,7 +28,6 @@
  */
 
 #include "config.h"
-
 #include <fcntl.h>
 #include <libgen.h>		/* used for 'dirname' */
 #include <pthread.h>
