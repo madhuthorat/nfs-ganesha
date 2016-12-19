@@ -16,6 +16,7 @@ SET(fsalzfs_LIB_SRCS
 )
 
 add_library(fsalzfs SHARED ${fsalzfs_LIB_SRCS})
+add_sanitizers(fsalzfs)
 
 target_link_libraries(fsalzfs
   zfswrap
