@@ -15,6 +15,7 @@ SET(fsalxfs_LIB_SRCS
   )
 
 add_library(fsalxfs SHARED ${fsalxfs_LIB_SRCS})
+add_sanitizers(fsalxfs)
 
 target_link_libraries(fsalxfs
   gos

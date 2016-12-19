@@ -21,6 +21,7 @@ SET(fsalrgw_LIB_SRCS
 )
 
 add_library(fsalrgw SHARED ${fsalrgw_LIB_SRCS})
+add_sanitizers(fsalrgw)
 
 target_link_libraries(fsalrgw rgw ${SYSTEM_LIBRARIES})
 

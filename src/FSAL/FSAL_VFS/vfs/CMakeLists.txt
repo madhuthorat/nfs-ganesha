@@ -19,6 +19,7 @@ if(ENABLE_VFS_DEBUG_ACL)
 endif(ENABLE_VFS_DEBUG_ACL)
 
 add_library(fsalvfs SHARED ${fsalvfs_LIB_SRCS})
+add_sanitizers(fsalvfs)
 
 target_link_libraries(fsalvfs
   gos

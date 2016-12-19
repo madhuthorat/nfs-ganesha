@@ -19,6 +19,7 @@ SET(fsalpanfs_LIB_SRCS
   )
 
 add_library(fsalpanfs SHARED ${fsalpanfs_LIB_SRCS})
+add_sanitizers(fsalpanfs)
 
 target_link_libraries(fsalpanfs
   gos
