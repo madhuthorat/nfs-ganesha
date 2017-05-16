@@ -29,5 +29,10 @@ if [ -r ${CONFIGFILE} ]; then
 			echo NUMACTL=${NUMACTL}
 			echo NUMAOPTS=--interleave=all
 		fi
+                if [ -f /etc/debian_version ]; then
+                        echo DBUSSEND=\"/usr/bin/dbus-send\"
+                else
+                        echo DBUSSEND=\"/bin/dbus-send\"
+                fi
 	} > ${RUNCONFIG}
 fi
