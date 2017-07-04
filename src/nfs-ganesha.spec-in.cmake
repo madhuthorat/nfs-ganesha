@@ -192,7 +192,7 @@ BuildRequires:	initscripts
 BuildRequires: python-sphinx
 %endif
 Requires(post): psmisc
-Requires(pre): shadow-utils
+Requires(pre): /usr/sbin/useradd
 
 # Use CMake variables
 
