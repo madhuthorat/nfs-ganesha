@@ -58,6 +58,9 @@ GPFSFSAL_create(struct fsal_obj_handle *dir_hdl, const char *filename,
 		return status;
 
 	/* retrieve file attributes */
+	if (filename != NULL && dir_hdl != NULL)
+		LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for filename: %s, fileid: %ld on fsid: major.minor: %ld.%ld",
+			filename, (unsigned long int)dir_hdl->fileid, (unsigned long int)dir_hdl->fsid.major, (unsigned long int)dir_hdl->fsid.minor);
 	return GPFSFSAL_getattrs(op_ctx->fsal_export, dir_hdl->fs->private_data,
 				 op_ctx, gpfs_fh, fsal_attr);
 }
@@ -85,6 +88,9 @@ GPFSFSAL_create2(struct fsal_obj_handle *dir_hdl, const char *filename,
 
 	if (!FSAL_IS_ERROR(status) && fsal_attr != NULL) {
 		/* retrieve file attributes */
+	        if (filename != NULL && dir_hdl != NULL)
+        	        LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for filename: %s, fileid: %ld on fsid: major.minor: %ld.%ld",
+                	        filename, (unsigned long int)dir_hdl->fileid, (unsigned long int)dir_hdl->fsid.major, (unsigned long int)dir_hdl->fsid.minor);
 		status = GPFSFSAL_getattrs(op_ctx->fsal_export,
 					   dir_hdl->fs->private_data,
 					   op_ctx, gpfs_fh, fsal_attr);
@@ -137,6 +143,9 @@ GPFSFSAL_mkdir(struct fsal_obj_handle *dir_hdl, const char *dir_name,
 		return status;
 
 	/* retrieve file attributes */
+        if (dir_name != NULL && dir_hdl != NULL)
+                LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for dir_name: %s, fileid: %ld on fsid: major.minor: %ld.%ld",
+                        dir_name, (unsigned long int)dir_hdl->fileid, (unsigned long int)dir_hdl->fsid.major, (unsigned long int)dir_hdl->fsid.minor);
 	return GPFSFSAL_getattrs(op_ctx->fsal_export,
 				dir_hdl->fs->private_data,
 				op_ctx, gpfs_fh, obj_attr);
@@ -256,6 +265,9 @@ GPFSFSAL_mknode(struct fsal_obj_handle *dir_hdl, const char *node_name,
 		return status;
 
 	/* Fills the attributes */
+        if (node_name != NULL && dir_hdl != NULL)
+                LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for node_name: %s, fileid: %ld on fsid: major.minor: %ld.%ld",
+                        node_name, (unsigned long int)dir_hdl->fileid, (unsigned long int)dir_hdl->fsid.major, (unsigned long int)dir_hdl->fsid.minor);
 	return GPFSFSAL_getattrs(op_ctx->fsal_export,
 				dir_hdl->fs->private_data,
 				op_ctx, gpfs_fh, fsal_attr);

@@ -3941,6 +3941,10 @@ void nfs3_FSALattr_To_Fattr(struct fsal_obj_handle *obj,
 	attrmask_t got = 0;
 
 	nfs3_FSALattr_To_PartialFattr(obj, FSAL_attr, &got, Fattr);
+                LogEvent(COMPONENT_NFSPROTO,
+                        "nfs3_FSALattr_To_Fattr: for fileid: %ld on fsid - major.minor: %ld.%ld",
+                        obj->fileid, (unsigned long int)obj->fsid.major, (unsigned long int)obj->fsid.minor);
+
 	if (want & ~got) {
 		LogCrit(COMPONENT_NFSPROTO,
 			"Likely bug: FSAL did not fill in a standard NFSv3 attribute: missing %"

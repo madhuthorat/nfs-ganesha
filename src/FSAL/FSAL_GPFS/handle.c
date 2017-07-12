@@ -593,6 +593,9 @@ static fsal_status_t getattrs(struct fsal_obj_handle *obj_hdl,
 	myself = container_of(obj_hdl, struct gpfs_fsal_obj_handle,
 			      obj_handle);
 
+	if (obj_hdl != NULL)
+	        LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for fileid: %ld on fsid: major.minor: %ld.%ld",
+        	        (unsigned long int)obj_hdl->fileid, (unsigned long int)obj_hdl->fsid.major, (unsigned long int)obj_hdl->fsid.minor);
 	return GPFSFSAL_getattrs(op_ctx->fsal_export,
 				 obj_hdl->fs->private_data,
 				 op_ctx, myself->handle,
@@ -1259,6 +1262,8 @@ fsal_status_t gpfs_create_handle(struct fsal_export *exp_hdl,
 	if (attrs_out != NULL)
 		attrib.request_mask |= attrs_out->request_mask;
 
+        LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for fsid: major.minor: %ld.%ld",
+		(unsigned long int)fsid.major, (unsigned long int)fsid.minor);
 	status = GPFSFSAL_getattrs(exp_hdl, gpfs_fs, op_ctx, fh, &attrib);
 	if (FSAL_IS_ERROR(status))
 		return status;

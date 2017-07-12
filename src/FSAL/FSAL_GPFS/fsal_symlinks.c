@@ -150,6 +150,9 @@ GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl, const char *linkname,
 	}
 
 	/* get attributes */
+	if (dir_hdl != NULL)
+	        LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for fileid: %ld on fsid: major.minor: %ld.%ld",
+        	         (unsigned long int)dir_hdl->fileid, (unsigned long int)dir_hdl->fsid.major, (unsigned long int)dir_hdl->fsid.minor);
 	status = GPFSFSAL_getattrs(op_ctx->fsal_export, gpfs_fs,
 				   op_ctx, gpfs_fh,
 				   link_attr);

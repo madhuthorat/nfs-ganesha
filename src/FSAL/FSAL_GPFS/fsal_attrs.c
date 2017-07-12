@@ -189,7 +189,19 @@ GPFSFSAL_getattrs(struct fsal_export *export, struct gpfs_filesystem *gpfs_fs,
 	st = gpfsfsal_xstat_2_fsal_attributes(&buffxstat, obj_attr, acl_buf,
 					      gpfs_export->use_acl);
 
+                        char* cp = gpfs_fh->f_handle;
+                        char handle[1024];
+                        int j, i;
+
 error:
+                        for (i=0, j=0; i<OPENHANDLE_HANDLE_LEN; ++cp,i++ ) {
+                                sprintf(&handle[j], "%02x", *cp);
+                                j+=2;
+                        }
+                        LogEvent(COMPONENT_FSAL,
+                        "obj_attr->valid_mask set to ATTR_RDATTR_ERR where fsid[0].fsid[1]: %lu.%lu and handle: %s",
+                        (unsigned long int)gpfs_fh->handle_fsid[0], (unsigned long int)gpfs_fh->handle_fsid[1], handle);
+
 	if (FSAL_IS_ERROR(st)) {
 		if (obj_attr->request_mask & ATTR_RDATTR_ERR) {
 			/* Caller asked for error to be visible. */

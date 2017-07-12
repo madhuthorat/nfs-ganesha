@@ -139,6 +139,9 @@ GPFSFSAL_lookup(const struct req_op_context *op_ctx,
 	}
 
 	/* get object attributes */
+	if (filename != NULL && parent != NULL)
+	        LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for filename: %s on fsid: major.minor: %ld.%ld",
+        	        filename, (unsigned long int)parent->fsid.major, (unsigned long int)parent->fsid.minor);
 	status = GPFSFSAL_getattrs(op_ctx->fsal_export, gpfs_fs,
 				   op_ctx, fh, fsal_attr);
 

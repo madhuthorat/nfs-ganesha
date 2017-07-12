@@ -198,6 +198,9 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 
 	if (attrs_out && (createmode >= FSAL_EXCLUSIVE || truncated)) {
 		/* Refresh the attributes */
+		if (obj_hdl != NULL)
+	        	LogEvent(COMPONENT_FSAL, "Calling GPFSFSAL_getattrs for fileid: %ld on fsid: major.minor: %ld.%ld",
+        	        	(unsigned long int)obj_hdl->fileid, (unsigned long int)obj_hdl->fsid.major, (unsigned long int)obj_hdl->fsid.minor);
 		status = GPFSFSAL_getattrs(export, gpfs_fs, op_ctx,
 					   gpfs_hdl->handle, attrs_out);
 
