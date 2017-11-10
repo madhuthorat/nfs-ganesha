@@ -88,6 +88,8 @@ GPFSFSAL_create2(struct fsal_obj_handle *dir_hdl, const char *filename,
 		status = GPFSFSAL_getattrs(op_ctx->fsal_export,
 					   dir_hdl->fs->private_data,
 					   op_ctx, gpfs_fh, fsal_attr);
+	} else {
+		LogEvent(COMPONENT_FSAL, "fsal_internal_create() returned with status: %ld", (long int)(status.major));
 	}
 
 	return status;

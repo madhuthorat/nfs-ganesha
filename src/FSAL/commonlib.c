@@ -2460,12 +2460,13 @@ fsal_status_t fsal_reopen_obj(struct fsal_obj_handle *obj_hdl,
 		return fsalstat(ERR_FSAL_NO_ERROR, 0);
 	}
 
-again:
-
-	LogFullDebug(COMPONENT_FSAL,
+	LogEvent(COMPONENT_FSAL,
 		     "Open mode = %x, desired mode = %x",
 		     (int) my_fd->openflags,
 		     (int) openflags);
+
+again:
+
 
 	if (not_open_usable(my_fd->openflags, openflags)) {
 
@@ -2476,8 +2477,9 @@ again:
 			/* This really should never occur, it could occur
 			 * if there was some race with closing the file.
 			 */
-			LogDebug(COMPONENT_FSAL,
-				 "Retry failed, returning EBADF");
+			LogEvent(COMPONENT_FSAL,
+				 "Retry failed, returning EBADF here Open mode = %x, desired mode = %x",
+				  (int) my_fd->openflags, (int) openflags);
 			*has_lock = false;
 			return fsalstat(posix2fsal_error(EBADF), EBADF);
 		}
@@ -2515,7 +2517,7 @@ again:
 					return status;
 				}
 			}
-
+			LogEvent(COMPONENT_FSAL, "Providing a temporary file descriptor");
 			status = open_func(obj_hdl, openflags, *out_fd);
 
 			if (FSAL_IS_ERROR(status)) {
@@ -2523,6 +2525,10 @@ again:
 					PTHREAD_RWLOCK_unlock(
 							&obj_hdl->obj_lock);
 				*has_lock = false;
+                                LogEvent(COMPONENT_FSAL,
+                                         "open_func for temp file desc. failed with %s",
+                                         msg_fsal_err(status.major));
+
 				return status;
 			}
 
@@ -2570,7 +2576,7 @@ again:
 				if (FSAL_IS_ERROR(status)) {
 					PTHREAD_RWLOCK_unlock(
 							&obj_hdl->obj_lock);
-					LogDebug(COMPONENT_FSAL,
+					LogEvent(COMPONENT_FSAL,
 						 "close_func failed with %s",
 						 msg_fsal_err(status.major));
 					*has_lock = false;
@@ -2601,7 +2607,7 @@ again:
 
 			if (FSAL_IS_ERROR(status)) {
 				PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
-				LogDebug(COMPONENT_FSAL,
+				LogEvent(COMPONENT_FSAL,
 					 "open_func failed with %s",
 					 msg_fsal_err(status.major));
 				*has_lock = false;

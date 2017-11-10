@@ -58,7 +58,7 @@ gpfs_open_func(struct fsal_obj_handle *obj_hdl, fsal_openflags_t openflags,
 		return status;
 
 	my_fd->openflags = openflags;
-	LogFullDebug(COMPONENT_FSAL, "new fd %d", my_fd->fd);
+	LogEvent(COMPONENT_FSAL, "new fd %d", my_fd->fd);
 
 	return status;
 }
@@ -69,8 +69,10 @@ gpfs_close_func(struct fsal_obj_handle *obj_hdl, struct fsal_fd *fd)
 	fsal_status_t status;
 	struct gpfs_fd *my_fd = (struct gpfs_fd *)fd;
 
+        LogEvent(COMPONENT_FSAL, "close fd: %d", my_fd->fd);
 	status = fsal_internal_close(my_fd->fd, NULL, 0);
 	my_fd->fd = -1;
+	my_fd->openflags = FSAL_O_CLOSED;
 
 	return status;
 }
@@ -150,6 +152,7 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	fsal_status_t status;
 	const bool truncated = (posix_flags & O_TRUNC) != 0;
 	int *fd;
+	struct gpfs_fd *local_fd;
 
 	/* This can block over an I/O operation. */
 	PTHREAD_RWLOCK_wrlock(&obj_hdl->obj_lock);
@@ -171,8 +174,11 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		status = check_share_conflict(&gpfs_hdl->u.file.share,
 					      openflags, false);
 
-		if (FSAL_IS_ERROR(status))
+		if (FSAL_IS_ERROR(status)) {
+			LogEvent(COMPONENT_FSAL, "check_share_conflict returned status: %ld",
+				(long int)(status.major));
 			goto out;
+		}
 
 		/* Take the share reservation now by updating the counters. */
 		update_share_counters(&gpfs_hdl->u.file.share, FSAL_O_CLOSED,
@@ -181,15 +187,18 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
 
 		fd = &my_fd->fd;
+		local_fd = my_fd;
 		my_fd->openflags = openflags;
 	} else {
 		/* We need to use the global fd to continue. */
 		fd = &gpfs_hdl->u.file.fd.fd;
+		local_fd = &(gpfs_hdl->u.file.fd);
 		gpfs_hdl->u.file.fd.openflags = openflags;
 	}
 
 	status = GPFSFSAL_open(obj_hdl, op_ctx, posix_flags, fd);
 	if (FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "GPFSFSAL_open returned status: %ld", (long int)(status.major));
 		if (state == NULL)
 			goto out;
 		else
@@ -207,10 +216,15 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 
 			/* Now check verifier for exclusive */
 			if (createmode >= FSAL_EXCLUSIVE &&
-			    !check_verifier_attrlist(attrs_out, verifier))
+			    !check_verifier_attrlist(attrs_out, verifier)) {
 				/* Verifier didn't match, return EEXIST */
 				status = fsalstat(posix2fsal_error(EEXIST),
 						  EEXIST);
+				LogEvent(COMPONENT_FSAL, "GPFSFSAL_getattrs returned status: %ld",
+					(long int)(status.major));
+			}
+		} else {
+			LogEvent(COMPONENT_FSAL, "GPFSFSAL_getattrs returned status: %ld", (long int)(status.major));
 		}
 	}
 
@@ -231,6 +245,8 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	}
 
 	(void) fsal_internal_close(*fd, state->state_owner, 0);
+	local_fd->fd = -1;
+	local_fd->openflags = FSAL_O_CLOSED;
 
  undo_share:
 	/* On error we need to release our share reservation
@@ -260,7 +276,7 @@ open_by_name(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	status = obj_hdl->obj_ops.lookup(obj_hdl, name, &temp, NULL);
 
 	if (FSAL_IS_ERROR(status)) {
-		LogFullDebug(COMPONENT_FSAL, "lookup returned %s",
+		LogEvent(COMPONENT_FSAL, "lookup returned %s",
 			     fsal_err_txt(status));
 		return status;
 	}
@@ -271,7 +287,7 @@ open_by_name(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	if (FSAL_IS_ERROR(status)) {
 		/* Release the object we found by lookup. */
 		temp->obj_ops.release(temp);
-		LogFullDebug(COMPONENT_FSAL, "open returned %s",
+		LogEvent(COMPONENT_FSAL, "open returned %s",
 			     fsal_err_txt(status));
 	}
 
@@ -339,6 +355,7 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	fsal_status_t status;
 	mode_t unix_mode;
 
+	LogEvent(COMPONENT_FSAL, "ENTERING..");
 	LogAttrlist(COMPONENT_FSAL, NIV_FULL_DEBUG, "attrs ", attr_set, false);
 
 	fsal2posix_openflags(openflags, &posix_flags);
@@ -347,10 +364,12 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		/* Now fixup attrs for verifier if exclusive create */
 		set_common_verifier(attr_set, verifier);
 
-	if (name == NULL)
+	if (name == NULL) {
+                LogEvent(COMPONENT_FSAL, "EXITING when name == NULL, calling open_by_handle");
 		return open_by_handle(obj_hdl, state, openflags, posix_flags,
 				      verifier, attrs_out, createmode,
 				      caller_perm_check);
+	}
 
 	/* In this path where we are opening by name, we can't check share
 	 * reservation yet since we don't have an object_handle yet. If we
@@ -363,10 +382,12 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	/* Non creation case, libgpfs doesn't have open by name so we
 	 * have to do a lookup and then handle as an open by handle.
 	 */
-	if (createmode == FSAL_NO_CREATE)
+	if (createmode == FSAL_NO_CREATE) {
+		LogEvent(COMPONENT_FSAL, "EXITING when createmode == FSAL_NO_CREATE, calling open_by_name");
 		return open_by_name(obj_hdl, state, name, openflags,
 				    posix_flags, verifier, attrs_out,
 				    caller_perm_check);
+	}
 
 	posix_flags |= O_CREAT;
 
@@ -410,10 +431,16 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		posix_flags &= ~O_EXCL;
 		status = GPFSFSAL_create2(obj_hdl, name, op_ctx, unix_mode, &fh,
 					  posix_flags, attrs_out);
+	} else {
+                LogEvent(COMPONENT_FSAL, "First call to GPFSFSAL_create2() returned with status: %ld",
+                        (long int)(status.major));
 	}
 
-	if (FSAL_IS_ERROR(status))
+	if (FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "First/Second call to GPFSFSAL_create2() returned with status: %ld",
+			(long int)(status.major));
 		return status;
+	}
 
 	/* Remember if we were responsible for creating the file.
 	 * Note that in an UNCHECKED retry we MIGHT have re-created the
@@ -431,6 +458,8 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	hdl = alloc_handle(&fh, obj_hdl->fs, attrs_out, NULL, export);
 	if (hdl == NULL) {
 		status = fsalstat(posix2fsal_error(ENOMEM), ENOMEM);
+                LogEvent(COMPONENT_FSAL, "alloc_handle() returned with status: %ld",
+                        (long int)(status.major));
 		goto fileerr;
 	}
 
@@ -446,27 +475,36 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		 */
 		status = (*new_obj)->obj_ops.setattr2(*new_obj, false, state,
 						      attr_set);
-		if (FSAL_IS_ERROR(status))
+		if (FSAL_IS_ERROR(status)) {
+	                LogEvent(COMPONENT_FSAL, "setattr2() returned with status: %ld",
+        	                (long int)(status.major));
 			goto fileerr;
+		}
 
 		if (attrs_out != NULL) {
 			status = (*new_obj)->obj_ops.getattrs(*new_obj,
 							      attrs_out);
 			if (FSAL_IS_ERROR(status) &&
-			    (attrs_out->request_mask & ATTR_RDATTR_ERR) == 0)
+			    (attrs_out->request_mask & ATTR_RDATTR_ERR) == 0) {
 				/* Get attributes failed and caller expected
 				 * to get the attributes. Otherwise continue
 				 * with attrs_out indicating ATTR_RDATTR_ERR.
 				 */
+			         LogEvent(COMPONENT_FSAL, "getattrs() returned with status: %ld",
+                        		(long int)(status.major));
 				goto fileerr;
+			}
 		}
 	}
 
 	/* Restore posix_flags as it was modified for create above */
 	fsal2posix_openflags(openflags, &posix_flags);
-	return open_by_handle(&hdl->obj_handle, state, openflags, posix_flags,
+
+	status = open_by_handle(&hdl->obj_handle, state, openflags, posix_flags,
 			verifier, attrs_out, createmode,
 			caller_perm_check);
+	LogEvent(COMPONENT_FSAL, "EXITING with status: %ld", (long int)(status.major));
+	return status;
 
  fileerr:
 	if (hdl != NULL) {
@@ -474,11 +512,12 @@ gpfs_open2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		(*new_obj)->obj_ops.release(*new_obj);
 		*new_obj = NULL;
 	}
-
+	
 	if (created) {
 		/* Remove the file we just created */
 		status = GPFSFSAL_unlink(obj_hdl, name, op_ctx);
 	}
+	LogEvent(COMPONENT_FSAL, "EXITING with status: %ld", (long int)(status.major));
 	return status;
 }
 
@@ -927,6 +966,7 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 	bool has_lock = false;
 	bool closefd = false;
 
+	LogEvent(COMPONENT_FSAL, "ENTERING..");
 	myself = container_of(obj_hdl, struct gpfs_fsal_obj_handle, obj_handle);
 
 	/* Make sure file is open in appropriate mode.
@@ -938,13 +978,19 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 				 gpfs_open_func, gpfs_close_func,
 				 (struct fsal_fd **)&out_fd, &has_lock,
 				 &closefd);
+	LogEvent(COMPONENT_FSAL, "fsal_reopen_obj() returned status: %ld, out_fd->fd: %d, out_fd->openflags: %"
+		  PRIx64,
+	          (long int)(status.major), out_fd->fd, (unsigned long int)(out_fd->openflags));
 
 	if (!FSAL_IS_ERROR(status)) {
 
 		fsal_set_credentials(op_ctx->creds);
 
 		status = gpfs_commit_fd(out_fd->fd, obj_hdl, offset, len);
-
+		if (FSAL_IS_ERROR(status)) {
+			LogEvent(COMPONENT_FSAL, "gpfs_commit_fd() returned status: %ld",
+				(long int)(status.major));
+		}
 		fsal_restore_ganesha_credentials();
 	}
 	if (closefd)
@@ -952,7 +998,7 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 
 	if (has_lock)
 		PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
-
+	LogEvent(COMPONENT_FSAL, "EXITING");
 	return status;
 }
 
@@ -1281,7 +1327,9 @@ gpfs_close2(struct fsal_obj_handle *obj_hdl, struct state_t *state)
 			     "state %p fd %d", state, my_fd->fd);
 		state_owner = state->state_owner;
 
-		return fsal_internal_close(my_fd->fd, state_owner, 0);
+		status = fsal_internal_close(my_fd->fd, state_owner, 0);
+		my_fd->fd = -1;
+		my_fd->openflags = FSAL_O_CLOSED;
 	}
 	return status;
 }
