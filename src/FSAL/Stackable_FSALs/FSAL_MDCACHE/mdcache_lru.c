@@ -1258,7 +1258,7 @@ lru_run(struct fridgethr_context *ctx)
 		extremis = (atomic_fetch_size_t(&open_fd_count) >
 			    lru_state.fds_hiwat);
 
-	LogFullDebug(COMPONENT_CACHE_INODE_LRU, "LRU awakes.");
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "LRU awakes, open_fd_count: %zd", atomic_fetch_size_t(&open_fd_count));
 
 	if (!woke) {
 		/* If we make it all the way through a timed sleep
@@ -1377,7 +1377,7 @@ lru_run(struct fridgethr_context *ctx)
 
 	fridgethr_setwait(ctx, new_thread_wait);
 
-	LogDebug(COMPONENT_CACHE_INODE_LRU,
+	LogEvent(COMPONENT_CACHE_INODE_LRU,
 		 "After work, open_fd_count:%zd  count:%" PRIu64
 		 " fdrate:%u threadwait=%" PRIu64,
 		 atomic_fetch_size_t(&open_fd_count),

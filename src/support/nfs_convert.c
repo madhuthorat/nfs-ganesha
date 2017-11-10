@@ -531,8 +531,8 @@ nfsstat4 nfs4_Errno_verbose(fsal_errors_t error, const char *where)
 	case ERR_FSAL_BAD_INIT:
 	case ERR_FSAL_TIMEOUT:
                 LogCrit(COMPONENT_NFSPROTO,
-                        "Error %s in %s converted to NFS4ERR_IO, Current fd count: %ld",
-                        msg_fsal_err(error), where, get_num_fds());
+                        "Error %s in %s converted to NFS4ERR_IO, Current fd count: %ld, open_fd_count: %zd",
+                        msg_fsal_err(error), where, get_num_fds(), atomic_fetch_size_t(&open_fd_count));
 		nfserror = NFS4ERR_IO;
 		break;
 
@@ -560,8 +560,8 @@ nfsstat4 nfs4_Errno_verbose(fsal_errors_t error, const char *where)
 	case ERR_FSAL_IO:
 	case ERR_FSAL_NXIO:
                 LogCrit(COMPONENT_NFSPROTO,
-                        "Error %s in %s converted to NFS4ERR_IO, Current fd count: %ld",
-                        msg_fsal_err(error), where, get_num_fds());
+                        "Error %s in %s converted to NFS4ERR_IO, Current fd count: %ld, open_fd_count: %zd",
+                        msg_fsal_err(error), where, get_num_fds(), atomic_fetch_size_t(&open_fd_count));
 		nfserror = NFS4ERR_IO;
 		break;
 
@@ -689,8 +689,8 @@ nfsstat3 nfs3_Errno_verbose(fsal_errors_t error, const char *where)
 	case ERR_FSAL_IO:
 	case ERR_FSAL_NXIO:
 		LogCrit(COMPONENT_NFSPROTO,
-			"Error %s in %s converted to NFS3ERR_IO but was set non-retryable, Current fd count: %ld",
-			msg_fsal_err(error), where, get_num_fds());
+			"Error %s in %s converted to NFS3ERR_IO but was set non-retryable, Current fd count: %ld, open_fd_count: %zd",
+			msg_fsal_err(error), where, get_num_fds(), atomic_fetch_size_t(&open_fd_count));
 		nfserror = NFS3ERR_IO;
 		break;
 
