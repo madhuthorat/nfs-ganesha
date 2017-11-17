@@ -638,6 +638,25 @@ nfsstat4 nfs4_Errno_verbose(fsal_errors_t error, const char *where)
 	return nfserror;
 }
 
+long int get_num_fds()
+{
+     long unsigned int fd_count = 0;
+     char buf[64];
+     struct dirent *dp;
+
+     snprintf(buf, 64, "/proc/%i/fd/", getpid());
+     fd_count = 0;
+     DIR *dir = opendir(buf);
+     if (dir == NULL)
+        return -1;
+
+     while ((dp = readdir(dir)) != NULL) {
+          fd_count++;
+     }
+     closedir(dir);
+     return fd_count;
+}
+
 /**
  *
  * @brief Convert a FSAL error status to a nfsv3 status.
@@ -664,8 +683,8 @@ nfsstat3 nfs3_Errno_verbose(fsal_errors_t error, const char *where)
 	case ERR_FSAL_IO:
 	case ERR_FSAL_NXIO:
 		LogCrit(COMPONENT_NFSPROTO,
-			"Error %s in %s converted to NFS3ERR_IO but was set non-retryable",
-			msg_fsal_err(error), where);
+			"Error %s in %s converted to NFS3ERR_IO but was set non-retryable, Current fd count: %ld, open_fd_count: %zd",
+			msg_fsal_err(error), where, get_num_fds(), atomic_fetch_size_t(&open_fd_count));
 		nfserror = NFS3ERR_IO;
 		break;
 
