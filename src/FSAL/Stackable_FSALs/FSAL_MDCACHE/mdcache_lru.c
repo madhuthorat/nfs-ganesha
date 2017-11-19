@@ -1258,7 +1258,8 @@ lru_run(struct fridgethr_context *ctx)
 		extremis = (atomic_fetch_size_t(&open_fd_count) >
 			    lru_state.fds_hiwat);
 
-	LogEvent(COMPONENT_CACHE_INODE_LRU, "LRU awakes.");
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "LRU awakes, open_fd_count: %zd, fds_lowat: %d, fds_hiwat: %lu",
+		atomic_fetch_size_t(&open_fd_count), lru_state.fds_lowat, (long unsigned int)(lru_state.fds_hiwat));
 
 	if (!woke) {
 		/* If we make it all the way through a timed sleep
@@ -1308,7 +1309,7 @@ lru_run(struct fridgethr_context *ctx)
 			     ((uint64_t) (curr_time - lru_state.prev_time)));
 
 		if (extremis) {
-			LogDebug(COMPONENT_CACHE_INODE_LRU,
+			LogEvent(COMPONENT_CACHE_INODE_LRU,
 				 "Open FDs over high water mark, reapring aggressively.");
 		}
 

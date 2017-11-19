@@ -69,7 +69,7 @@ int posix2fsal_error(int posix_errorcode)
 
 		/* broken pipe */
 	case EPIPE:
-
+		LogEvent(COMPONENT_FSAL, "Mapping %d to ERR_FSAL_IO", posix_errorcode);
 		/* all shown as IO errors */
 		if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
 			LogInfo(COMPONENT_FSAL,
