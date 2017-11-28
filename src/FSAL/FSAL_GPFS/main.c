@@ -48,7 +48,7 @@ struct gpfs_fsal_module {
 	/* gpfsfs_specific_initinfo_t specific_info;  placeholder */
 };
 
-const char myname[] = "GPFS";
+static const char myname[] = "GPFS";
 
 /* filesystem info for GPFS */
 static struct fsal_staticfsinfo_t default_gpfs_info = {
