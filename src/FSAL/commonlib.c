@@ -2538,7 +2538,7 @@ again:
 			 */
 			*closefd = true;
 			*has_lock = check_share;
-
+			LogEvent(COMPONENT_FSAL, "Opened a temporary fd");
 			return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 		} else if (rc != 0) {

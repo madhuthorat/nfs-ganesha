@@ -58,7 +58,7 @@ gpfs_open_func(struct fsal_obj_handle *obj_hdl, fsal_openflags_t openflags,
 		return status;
 
 	my_fd->openflags = openflags;
-	LogFullDebug(COMPONENT_FSAL, "new fd %d", my_fd->fd);
+	LogEvent(COMPONENT_FSAL, "new fd %d", my_fd->fd);
 
 	return status;
 }
@@ -779,7 +779,7 @@ gpfs_read2(struct fsal_obj_handle *obj_hdl, bool bypass, struct state_t *state,
 
 	if (closefd) {
 		fsal_status_t status2;
-
+		LogEvent(COMPONENT_FSAL, "Closing temporary fd");
 		status2 = fsal_internal_close(my_fd, NULL, 0);
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
@@ -860,7 +860,7 @@ gpfs_write2(struct fsal_obj_handle *obj_hdl, bool bypass, struct state_t *state,
 
 	if (closefd) {
 		fsal_status_t status2;
-
+		LogEvent(COMPONENT_FSAL, "Closing temporary fd");
 		status2 = fsal_internal_close(my_fd, NULL, 0);
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
@@ -949,8 +949,10 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 
 		fsal_restore_ganesha_credentials();
 	}
-	if (closefd)
+	if (closefd) {
+		LogEvent(COMPONENT_FSAL, "Closing temporary fd");
 		fsal_internal_close(out_fd->fd, NULL, 0);
+	}
 
 	if (has_lock)
 		PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
@@ -970,7 +972,7 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
  * For FSAL_VFS etc. we ignore owner, implicitly we have a lock_fd per
  * lock owner (i.e. per state).
  *
- * @param[in]  obj_hdl		File on which to operate
+ *  @param[in]  obj_hdl		File on which to operate
  * @param[in]  state		state_t to use for this operation
  * @param[in]  owner		Lock owner
  * @param[in]  lock_op		Operation to perform
@@ -1103,7 +1105,7 @@ gpfs_lock_op2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 
 	if (closefd) {
 		fsal_status_t status2;
-
+		LogEvent(COMPONENT_FSAL, "Closing temporary fd");
 		status2 = fsal_internal_close(glock_args.lfd, NULL, 0);
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
@@ -1223,6 +1225,8 @@ fsal_status_t gpfs_close(struct fsal_obj_handle *obj_hdl)
 
 	if (myself->u.file.fd.fd >= 0 &&
 	    myself->u.file.fd.openflags != FSAL_O_CLOSED) {
+		LogEvent(COMPONENT_FSAL, "Closing fd: %d",
+			 myself->u.file.fd.fd);
 		status = fsal_internal_close(myself->u.file.fd.fd, NULL, 0);
 		myself->u.file.fd.fd = -1;
 		myself->u.file.fd.openflags = FSAL_O_CLOSED;

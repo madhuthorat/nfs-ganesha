@@ -75,8 +75,10 @@ fsal_status_t fsal_internal_close(int fd, void *owner, int cflags)
 	carg.close_flags = cflags;
 	carg.close_owner = owner;
 
-	if (unlikely(gpfs_ganesha(OPENHANDLE_CLOSE_FILE, &carg) < 0))
+	if (unlikely(gpfs_ganesha(OPENHANDLE_CLOSE_FILE, &carg) < 0)) {
+		LogEvent(COMPONENT_FSAL, "While closing fd %d saw errno: %d", fd, errno);
 		return FSAL_INTERNAL_ERROR(errno, "OPENHANDLE_CLOSE_FILE");
+	}
 
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

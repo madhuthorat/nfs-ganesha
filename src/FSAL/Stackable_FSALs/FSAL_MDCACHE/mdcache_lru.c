@@ -60,6 +60,40 @@
 #include "gsh_lttng/mdcache.h"
 #endif
 
+#define OPENHANDLE_HANDLE_LEN 40
+struct gpfs_file_handle1
+{
+  uint16_t handle_size;
+  uint16_t handle_type;
+  uint16_t handle_version;
+  uint16_t handle_key_size;
+  uint32_t handle_fsid[2];
+  /* file identifier */
+  unsigned char f_handle[OPENHANDLE_HANDLE_LEN];
+};
+
+struct gpfs_fd1 {
+        /** The open and share mode etc. */
+        fsal_openflags_t openflags;
+        /** The gpfsfs file descriptor. */
+        int fd;
+};
+
+struct gpfs_fsal_obj_handle1 {
+        struct fsal_obj_handle obj_handle;
+        struct gpfs_file_handle1 *handle;
+        union {
+                struct {
+                        struct fsal_share share;
+                        struct gpfs_fd1 fd;
+                } file;
+                struct {
+                        unsigned char *link_content;
+                        int link_size;
+                } symlink;
+        } u;
+};
+
 /**
  *
  * @file mdcache_lru.c
@@ -1010,6 +1044,73 @@ mdcache_lru_cleanup_try_push(mdcache_entry_t *entry)
 	}
 }
 
+static inline size_t dump_lru_lane(char *qname, size_t lane, struct lru_q_lane *qlane, struct lru_q *q);
+void dump_lanes()
+{
+        struct lru_q *q;
+	struct lru_q_lane *qlane;
+	size_t lane;
+	size_t workL1=0, workL2=0, workcleanup=0;
+
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "Dumping all L1 queues");
+	for (lane = 0; lane < LRU_N_Q_LANES; ++lane) {
+		qlane =  &LRU[lane];
+		q = &qlane->L1;
+		workL1 += dump_lru_lane("L1", lane, qlane, q);
+	}
+
+        LogEvent(COMPONENT_CACHE_INODE_LRU, "Dumping all L2 queues");
+        for (lane = 0; lane < LRU_N_Q_LANES; ++lane) {
+                qlane =  &LRU[lane];
+                q = &qlane->L2;
+                workL2 += dump_lru_lane("L2", lane, qlane, q);
+        }
+#if 1
+        LogEvent(COMPONENT_CACHE_INODE_LRU, "Dumping all cleanup queues");
+        for (lane = 0; lane < LRU_N_Q_LANES; ++lane) {
+                qlane =  &LRU[lane];
+                q = &qlane->cleanup;
+                workcleanup += dump_lru_lane("cleanup", lane, qlane, q);
+        }
+#endif
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "TOTAL WORK at L1:%zd, L2:%zd, cleanup:%zd", workL1, workL2, workcleanup);
+}
+
+static inline size_t dump_lru_lane(char *qname, size_t lane, struct lru_q_lane *qlane, struct lru_q *q)
+{
+        /* The amount of work done on this lane on this pass. */
+        size_t workdone = 0;
+        /* The entry being examined */
+        mdcache_lru_t *lru = NULL;
+        mdcache_entry_t *entry;
+        struct fsal_obj_handle *obj_hdl;
+        struct gpfs_fsal_obj_handle1 *gpfs_hdl;
+        mdcache_entry_t *sub_entry;
+
+        glist_for_each_safe(qlane->iter.glist, qlane->iter.glistn, &q->q) {
+                lru = glist_entry(qlane->iter.glist, mdcache_lru_t, q);
+
+                /* get entry early */
+                entry = container_of(lru, mdcache_entry_t, lru);
+
+		sub_entry =
+                	container_of(&entry->obj_handle, mdcache_entry_t, obj_handle);
+	        obj_hdl = sub_entry->sub_handle;
+        	gpfs_hdl = container_of(obj_hdl, struct gpfs_fsal_obj_handle1, obj_handle);
+		if(gpfs_hdl != NULL)	
+			LogEvent(COMPONENT_CACHE_INODE_LRU, "In %s, lane:%zd, entry:%zd, fd:%d, openflags:%d",
+				qname, lane, workdone, gpfs_hdl->u.file.fd.fd, gpfs_hdl->u.file.fd.openflags);
+                ++workdone;
+        } /* for_each_safe lru */
+
+	if(workdone != 0)
+	        LogEvent(COMPONENT_CACHE_INODE_LRU,
+        	         "In %s, Lane:%zd, Total entries:%zd",
+                	 qname, lane, workdone);
+
+        return workdone;
+}
+
 /**
  * @brief Function that executes in the lru thread to process one lane
  *
@@ -1258,7 +1359,7 @@ lru_run(struct fridgethr_context *ctx)
 		extremis = (atomic_fetch_size_t(&open_fd_count) >
 			    lru_state.fds_hiwat);
 
-	LogFullDebug(COMPONENT_CACHE_INODE_LRU, "LRU awakes.");
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "LRU awakes, open_fd_count: %zd", atomic_fetch_size_t(&open_fd_count));
 
 	if (!woke) {
 		/* If we make it all the way through a timed sleep
@@ -1377,17 +1478,17 @@ lru_run(struct fridgethr_context *ctx)
 
 	fridgethr_setwait(ctx, new_thread_wait);
 
-	LogDebug(COMPONENT_CACHE_INODE_LRU,
+	LogEvent(COMPONENT_CACHE_INODE_LRU,
 		 "After work, open_fd_count:%zd  count:%" PRIu64
 		 " fdrate:%u threadwait=%" PRIu64,
 		 atomic_fetch_size_t(&open_fd_count),
 		 lru_state.entries_used, fdratepersec,
 		 ((uint64_t) threadwait));
-	LogFullDebug(COMPONENT_CACHE_INODE_LRU,
-		     "currentopen=%zd futility=%d totalwork=%zd biggest_window=%d extremis=%d lanes=%d fds_lowat=%d ",
-		     currentopen, lru_state.futility, totalwork,
+	LogEvent(COMPONENT_CACHE_INODE_LRU,
+		     "currentopen=%zd futility=%d totalwork=%zd biggest_window=%d extremis=%d lanes=%d fds_lowat=%d totalclosed:%"
+		     PRIu64, currentopen, lru_state.futility, totalwork,
 		     lru_state.biggest_window, extremis, LRU_N_Q_LANES,
-		     lru_state.fds_lowat);
+		     lru_state.fds_lowat, totalclosed);
 }
 
 /**
