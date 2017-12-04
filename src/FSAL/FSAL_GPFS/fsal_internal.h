@@ -110,7 +110,7 @@ void pnfs_ds_ops_init(struct fsal_pnfs_ds_ops *ops);
 void export_ops_pnfs(struct export_ops *ops);
 void handle_ops_pnfs(struct fsal_obj_ops *ops);
 
-fsal_status_t fsal_internal_close(int fd, void *owner, int cflags);
+fsal_status_t fsal_internal_close(int fd, void *owner, int cflags, char *fdtype);
 
 int fsal_internal_version(void);
 

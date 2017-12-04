@@ -1839,6 +1839,7 @@ _mdcache_lru_ref(mdcache_entry_t *entry, uint32_t flags, const char *func,
 			break;
 		default:
 			/* do nothing */
+			LogEvent(COMPONENT_CACHE_INODE_LRU, "Trying to ref an entry in %d queue", lru->qid);
 			break;
 		}		/* switch qid */
 		QUNLOCK(qlane);

@@ -973,7 +973,7 @@ static void release(struct fsal_obj_handle *obj_hdl)
 
 		if (myself->u.file.fd.fd >= 0 &&
 		    myself->u.file.fd.openflags != FSAL_O_CLOSED) {
-			fsal_internal_close(myself->u.file.fd.fd, NULL, 0);
+			fsal_internal_close(myself->u.file.fd.fd, NULL, 0, "global");
 			myself->u.file.fd.fd = -1;
 			myself->u.file.fd.openflags = FSAL_O_CLOSED;
 		}

@@ -66,7 +66,7 @@
  *
  *  @return status of operation
  */
-fsal_status_t fsal_internal_close(int fd, void *owner, int cflags)
+fsal_status_t fsal_internal_close(int fd, void *owner, int cflags, char *fdtype)
 {
 	struct close_file_arg carg;
 
@@ -74,6 +74,9 @@ fsal_status_t fsal_internal_close(int fd, void *owner, int cflags)
 	carg.close_fd = fd;
 	carg.close_flags = cflags;
 	carg.close_owner = owner;
+
+	if(fdtype != NULL)
+		LogEvent(COMPONENT_FSAL, "Closing %s fd: %d", fdtype, fd);
 
 	if (unlikely(gpfs_ganesha(OPENHANDLE_CLOSE_FILE, &carg) < 0))
 		return FSAL_INTERNAL_ERROR(errno, "OPENHANDLE_CLOSE_FILE");

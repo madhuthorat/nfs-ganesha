@@ -69,7 +69,8 @@ gpfs_close_func(struct fsal_obj_handle *obj_hdl, struct fsal_fd *fd)
 	fsal_status_t status;
 	struct gpfs_fd *my_fd = (struct gpfs_fd *)fd;
 
-	status = fsal_internal_close(my_fd->fd, NULL, 0);
+	status = fsal_internal_close(my_fd->fd, NULL, 0, "global");
+
 	my_fd->fd = -1;
 	my_fd->openflags = FSAL_O_CLOSED;
 
@@ -218,6 +219,9 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		 * any permission check so ask the caller to do so.
 		 */
 		*cpm_check = !FSAL_IS_ERROR(status);
+		if (!FSAL_IS_ERROR(status)) {
+			LogEvent(COMPONENT_FSAL, "Opened global fd: %d", my_fd->fd);
+		}
 		goto out;
 	}
 
@@ -229,7 +233,7 @@ open_by_handle(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		return status;
 	}
 
-	(void) fsal_internal_close(my_fd->fd, state->state_owner, 0);
+	(void) fsal_internal_close(my_fd->fd, state->state_owner, 0, NULL);
 	my_fd->fd = -1;
 	my_fd->openflags = FSAL_O_CLOSED;
 
@@ -623,10 +627,11 @@ gpfs_reopen2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 		 * about to close!
 		 */
 		PTHREAD_RWLOCK_wrlock(&obj_hdl->obj_lock);
-		fsal_internal_close(my_share_fd->fd, NULL, 0);
+		fsal_internal_close(my_share_fd->fd, NULL, 0, "global");
 		my_share_fd->fd = my_fd;
 		my_share_fd->openflags = openflags;
 		PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
+		LogEvent(COMPONENT_FSAL, "Opened global fd: %d", my_share_fd->fd);
 	} else {
 		/* We had a failure on open - we need to revert the share.
 		 * This can block over an I/O operation.
@@ -650,8 +655,12 @@ find_fd(int *fd, struct fsal_obj_handle *obj_hdl, bool bypass,
 	struct gpfs_fsal_obj_handle *myself;
 	struct gpfs_fd temp_fd = {0, -1}, *out_fd = &temp_fd;
 	int posix_flags;
+	struct gpfs_fd myfd_copy;
 
 	myself = container_of(obj_hdl, struct gpfs_fsal_obj_handle, obj_handle);
+	
+	myfd_copy.openflags = myself->u.file.fd.openflags;
+	myfd_copy.fd = myself->u.file.fd.fd;
 
 	fsal2posix_openflags(openflags, &posix_flags);
 
@@ -687,9 +696,16 @@ find_fd(int *fd, struct fsal_obj_handle *obj_hdl, bool bypass,
 			if (state == NULL) { /* anonymous I/O */
 				if (out_fd == &temp_fd) {
 					assert(*closefd);
+                                        LogEvent(COMPONENT_FSAL, "Opened tmp fd: %d",
+                                                *fd);
 				} else {
 					assert(out_fd == &myself->u.file.fd);
 					assert(!*closefd);
+					if (!(myfd_copy.fd == *fd && 
+					      myfd_copy.openflags == out_fd->openflags)) {
+	                                	LogEvent(COMPONENT_FSAL, "Opened global fd: %d",
+		                                        *fd);
+					}
 				}
 			}
 		}
@@ -807,7 +823,7 @@ gpfs_read2(struct fsal_obj_handle *obj_hdl, bool bypass, struct state_t *state,
 	if (closefd) {
 		fsal_status_t status2;
 
-		status2 = fsal_internal_close(my_fd, NULL, 0);
+		status2 = fsal_internal_close(my_fd, NULL, 0, "tmp");
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
 				 "fsal close failed, fd:%d, error: %s",
@@ -888,7 +904,7 @@ gpfs_write2(struct fsal_obj_handle *obj_hdl, bool bypass, struct state_t *state,
 	if (closefd) {
 		fsal_status_t status2;
 
-		status2 = fsal_internal_close(my_fd, NULL, 0);
+		status2 = fsal_internal_close(my_fd, NULL, 0, "tmp");
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
 				 "fsal close failed, fd:%d, error: %s",
@@ -955,8 +971,12 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 	struct gpfs_fd temp_fd = {0, -1}, *out_fd = &temp_fd;
 	bool has_lock = false;
 	bool closefd = false;
+	struct gpfs_fd myfd_copy;
 
 	myself = container_of(obj_hdl, struct gpfs_fsal_obj_handle, obj_handle);
+
+	myfd_copy.openflags = myself->u.file.fd.openflags;
+	myfd_copy.fd = myself->u.file.fd.fd;
 
 	/* Make sure file is open in appropriate mode.
 	 * Do not check share reservation.
@@ -969,6 +989,19 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 				 &closefd);
 
 	if (!FSAL_IS_ERROR(status)) {
+               	if (out_fd == &temp_fd) {
+                       	assert(closefd);
+                        LogEvent(COMPONENT_FSAL, "Opened tmp fd: %d",
+       				out_fd->fd);
+		} else {
+			assert(out_fd == &myself->u.file.fd);
+                        assert(!closefd);
+                        if (!(myfd_copy.fd == out_fd->fd &&
+                              myfd_copy.openflags == out_fd->openflags)) {
+                        	LogEvent(COMPONENT_FSAL, "Opened global fd: %d",
+                           		 out_fd->fd);
+			}
+		}
 
 		fsal_set_credentials(op_ctx->creds);
 
@@ -977,7 +1010,7 @@ gpfs_commit2(struct fsal_obj_handle *obj_hdl, off_t offset, size_t len)
 		fsal_restore_ganesha_credentials();
 	}
 	if (closefd)
-		fsal_internal_close(out_fd->fd, NULL, 0);
+		fsal_internal_close(out_fd->fd, NULL, 0, "tmp");
 
 	if (has_lock)
 		PTHREAD_RWLOCK_unlock(&obj_hdl->obj_lock);
@@ -1131,7 +1164,7 @@ gpfs_lock_op2(struct fsal_obj_handle *obj_hdl, struct state_t *state,
 	if (closefd) {
 		fsal_status_t status2;
 
-		status2 = fsal_internal_close(glock_args.lfd, NULL, 0);
+		status2 = fsal_internal_close(glock_args.lfd, NULL, 0, "tmp");
 		if (FSAL_IS_ERROR(status2)) {
 			LogEvent(COMPONENT_FSAL,
 				 "fsal close failed, fd:%d, error: %s",
@@ -1250,7 +1283,7 @@ fsal_status_t gpfs_close(struct fsal_obj_handle *obj_hdl)
 
 	if (myself->u.file.fd.fd >= 0 &&
 	    myself->u.file.fd.openflags != FSAL_O_CLOSED) {
-		status = fsal_internal_close(myself->u.file.fd.fd, NULL, 0);
+		status = fsal_internal_close(myself->u.file.fd.fd, NULL, 0, "global");
 		myself->u.file.fd.fd = -1;
 		myself->u.file.fd.openflags = FSAL_O_CLOSED;
 	} else {
@@ -1310,7 +1343,7 @@ gpfs_close2(struct fsal_obj_handle *obj_hdl, struct state_t *state)
 			     "state %p fd %d", state, my_fd->fd);
 		state_owner = state->state_owner;
 
-		status = fsal_internal_close(my_fd->fd, state_owner, 0);
+		status = fsal_internal_close(my_fd->fd, state_owner, 0, "global");
 		my_fd->fd = -1;
 		my_fd->openflags = FSAL_O_CLOSED;
 	}
