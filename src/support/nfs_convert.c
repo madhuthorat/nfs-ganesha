@@ -667,7 +667,6 @@ nfsstat3 nfs3_Errno_verbose(fsal_errors_t error, const char *where)
 		LogCrit(COMPONENT_NFSPROTO,
 			"Error %s in %s converted to NFS3ERR_IO but was set non-retryable",
 			msg_fsal_err(error), where);
-		dump_lanes();
 		nfserror = NFS3ERR_IO;
 		break;
 

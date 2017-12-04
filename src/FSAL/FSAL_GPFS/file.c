@@ -1225,8 +1225,6 @@ fsal_status_t gpfs_close(struct fsal_obj_handle *obj_hdl)
 
 	if (myself->u.file.fd.fd >= 0 &&
 	    myself->u.file.fd.openflags != FSAL_O_CLOSED) {
-		LogEvent(COMPONENT_FSAL, "Closing fd: %d",
-			 myself->u.file.fd.fd);
 		status = fsal_internal_close(myself->u.file.fd.fd, NULL, 0);
 		myself->u.file.fd.fd = -1;
 		myself->u.file.fd.openflags = FSAL_O_CLOSED;
