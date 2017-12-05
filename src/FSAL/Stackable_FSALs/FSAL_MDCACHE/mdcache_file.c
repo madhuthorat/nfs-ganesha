@@ -63,6 +63,24 @@ mdc_set_time_current(struct timespec *time)
 	return true;
 }
 
+
+static fsal_status_t globalfd_close_helper(struct fsal_obj_handle *obj)
+{
+	fsal_status_t status;
+	status = fsal_close(obj);
+
+        if (FSAL_IS_ERROR(status)) {
+                /* Just log but don't return this error (we want to
+                 * preserve the error that got us here).
+                 */
+                LogDebug(COMPONENT_FSAL,
+                         "FSAL close2 failed with %s",
+                         fsal_err_txt(status));
+        }
+
+	return fsalstat(ERR_FSAL_NO_ERROR, 0);
+}
+
 /**
  * @brief Open a file
  *
@@ -855,9 +873,13 @@ fsal_status_t mdcache_read2(struct fsal_obj_handle *obj_hdl,
 			buffer, read_amount, eof, info)
 	       );
 
-	if (!FSAL_IS_ERROR(status))
-		mdc_set_time_current(&entry->attrs.atime);
-	else if (status.major == ERR_FSAL_DELAY)
+	if (!FSAL_IS_ERROR(status)) {
+		if(state == NULL && !mdcache_lru_caching_fds()) {
+			globalfd_close_helper(obj_hdl);
+		} else {
+			mdc_set_time_current(&entry->attrs.atime);
+		}
+	} else if (status.major == ERR_FSAL_DELAY)
 		mdcache_kill_entry(entry);
 
 	return status;
@@ -901,9 +923,14 @@ fsal_status_t mdcache_write2(struct fsal_obj_handle *obj_hdl,
 
 	if (status.major == ERR_FSAL_STALE)
 		mdcache_kill_entry(entry);
-	else
-		atomic_clear_uint32_t_bits(&entry->mde_flags,
-					   MDCACHE_TRUST_ATTRS);
+	else {
+		if(state == NULL && !mdcache_lru_caching_fds()) {
+			globalfd_close_helper(obj_hdl);
+		} else {
+			atomic_clear_uint32_t_bits(&entry->mde_flags,
+						   MDCACHE_TRUST_ATTRS);
+		}
+	}	
 
 	return status;
 }
