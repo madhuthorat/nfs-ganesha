@@ -49,6 +49,7 @@
 #include "sal_data.h"
 #include "sal_functions.h"
 #include "FSAL/fsal_commonlib.h"
+#include "mdcache.h"
 
 /**
  * This is a global counter of files opened.
@@ -1968,4 +1969,23 @@ fsal_status_t fsal_verify2(struct fsal_obj_handle *obj,
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
+fsal_status_t fsal_close2(struct fsal_obj_handle *obj, struct state_t *state)
+{
+	fsal_status_t status = {ERR_FSAL_NO_ERROR, 0};
+
+	/* If we are not caching global FDs, then close the FD */
+	if (state == NULL && !mdcache_lru_caching_fds()) {
+		status = fsal_close(obj);
+
+		if (FSAL_IS_ERROR(status)) {
+			/* Just log but don't return this error (we want to
+			 * preserve the error that got us here).
+			 */
+			LogDebug(COMPONENT_FSAL,
+				"FSAL close2 failed with %s",
+				fsal_err_txt(status));
+		}
+	}
+	return status;
+}
 /** @} */

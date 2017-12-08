@@ -464,4 +464,12 @@ void mdcache_dbus_show(DBusMessageIter *iter)
 }
 #endif /* USE_DBUS */
 
+/**
+ * Return true if we are currently caching file descriptors.
+ */
+bool mdcache_lru_caching_fds(void)
+{
+	return lru_state.caching_fds;
+}
+
 /** @} */

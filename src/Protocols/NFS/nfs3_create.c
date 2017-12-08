@@ -261,8 +261,11 @@ int nfs3_create(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 
  out:
 	/* return references */
-	if (file_obj)
+	if (file_obj) {
+		/* Call fsal_close2 which will close FD if Cache_FDs=false */
+		fsal_close2(file_obj, NULL);
 		file_obj->obj_ops.put_ref(file_obj);
+	}
 
 	if (parent_obj)
 		parent_obj->obj_ops.put_ref(parent_obj);
