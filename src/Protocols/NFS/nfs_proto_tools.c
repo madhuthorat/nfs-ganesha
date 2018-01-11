@@ -3937,8 +3937,9 @@ bool nfs3_FSALattr_To_Fattr(struct fsal_obj_handle *obj,
 	if ((want & FSAL_attr->valid_mask) != want) {
 		LogCrit(COMPONENT_NFSPROTO,
 			"Likely bug: FSAL did not fill in a standard NFSv3 attribute: missing %"
-			PRIx64,
-			want & ~(FSAL_attr->valid_mask));
+			PRIx64 ", FSAL_attr->valid_mask: %" PRIx64 ", want: %" PRIx64,
+			want & ~(FSAL_attr->valid_mask), FSAL_attr->valid_mask, want);
+			abort();
 		return false;
 	}
 	nfs3_FSALattr_To_PartialFattr(obj, FSAL_attr, Fattr);
