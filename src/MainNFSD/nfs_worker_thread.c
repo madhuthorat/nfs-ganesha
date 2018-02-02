@@ -715,7 +715,7 @@ void nfs_rpc_execute(request_data_t *reqdata)
 	const nfs_function_desc_t *reqdesc = reqdata->r_u.req.funcdesc;
 	nfs_arg_t *arg_nfs = &reqdata->r_u.req.arg_nfs;
 	SVCXPRT *xprt = reqdata->r_u.req.svc.rq_xprt;
-	nfs_res_t *res_nfs;
+	nfs_res_t *res_nfs = NULL;
 	struct export_perms export_perms;
 	struct user_cred user_credentials;
 	struct req_op_context req_ctx;
@@ -776,6 +776,13 @@ void nfs_rpc_execute(request_data_t *reqdata)
 	 * xprt private data. */
 
 	port = get_port(op_ctx->caller_addr);
+	if (port == -1) {
+		/* There is some problem in getting the 'port' */
+		LogCrit(COMPONENT_DISPATCH, "Cannot process request: Error in getting port number");
+		svcerr_systemerr(&reqdata->r_u.req.svc);
+		goto freeargs;
+	}
+
 	op_ctx->client = get_gsh_client(op_ctx->caller_addr, false);
 	if (op_ctx->client == NULL) {
 		LogDebug(COMPONENT_DISPATCH,
