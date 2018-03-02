@@ -358,7 +358,7 @@ typedef struct mdcache_dir_entry__ {
 	/** The chunk this entry belongs to */
 	struct dir_chunk *chunk;
 	/** node in tree by name */
-	struct avltree_node node_hk;
+	struct avltree_node node_name;
 	/** AVL node in tree by cookie */
 	struct avltree_node node_ck;
 	/** AVL node in tree by sorted order */
@@ -371,19 +371,16 @@ typedef struct mdcache_dir_entry__ {
 	/** Indicates if this dirent is the last dirent in a chunked directory.
 	 */
 	bool eod;
-	struct {
-		/** Name Hash */
-		uint64_t k;
-		/** Number of probes, an efficiency metric */
-		uint32_t p;
-	} hk;
+	/** Name Hash */
+	uint64_t namehash;
 	/** Key of cache entry */
 	mdcache_key_t ckey;
 	/** Flags
 	 * Protected by write lock or atomics. */
 	uint32_t flags;
+	const char *name;
 	/** The NUL-terminated filename */
-	char name[];
+	char name_buffer[];
 } mdcache_dir_entry_t;
 
 /**
