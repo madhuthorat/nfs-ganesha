@@ -530,9 +530,6 @@ _mem_alloc_handle(struct mem_fsal_obj_handle *parent,
 		/* This is an export */
 		hdl->is_export = true;
 	}
-#ifdef USE_LTTNG
-	tracepoint(fsalmem, mem_alloc, func, line, hdl, name);
-#endif
 	return hdl;
 }
 
