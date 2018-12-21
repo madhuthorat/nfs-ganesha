@@ -436,10 +436,18 @@ mdc_get_parent(struct mdcache_fsal_export *export, mdcache_entry_t *entry)
  *
  */
 
-void mdcache_clean_dirent_chunk(struct dir_chunk *chunk)
+void mdcache_clean_dirent_chunk(struct dir_chunk *chunk,
+				bool check_lock)
 {
 	struct glist_head *glist, *glistn;
 	struct mdcache_fsal_obj_handle *parent = chunk->parent;
+
+	if (check_lock && parent != NULL &&
+		pthread_rwlock_trywrlock(&parent->content_lock) == 0) {
+		LogEvent(COMPONENT_CACHE_INODE,
+			"Found a path where content lock is not acquired");
+		abort();
+	}
 
 	glist_for_each_safe(glist, glistn, &chunk->dirents) {
 		mdcache_dir_entry_t *dirent;

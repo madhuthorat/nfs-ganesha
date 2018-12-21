@@ -494,7 +494,7 @@ fsal_status_t mdcache_readdir_uncached(mdcache_entry_t *directory, fsal_cookie_t
 				       *whence, void *dir_state,
 				       fsal_readdir_cb cb, attrmask_t attrmask,
 				       bool *eod_met);
-void mdcache_clean_dirent_chunk(struct dir_chunk *chunk);
+void mdcache_clean_dirent_chunk(struct dir_chunk *chunk, bool check_lock);
 void place_new_dirent(mdcache_entry_t *parent_dir,
 		      mdcache_dir_entry_t *new_dir_entry);
 fsal_status_t mdcache_readdir_chunked(mdcache_entry_t *directory,

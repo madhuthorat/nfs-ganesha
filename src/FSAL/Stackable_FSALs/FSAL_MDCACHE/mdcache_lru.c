@@ -824,7 +824,7 @@ lru_reap_chunk_impl(enum lru_q_id qid, mdcache_entry_t *parent,
 			/* Clean the chunk out and indicate the directory is no
 			 * longer completely populated.
 			 */
-			mdcache_clean_dirent_chunk(chunk);
+			mdcache_clean_dirent_chunk(chunk, 0);
 			atomic_clear_uint32_t_bits(&entry->mde_flags,
 						   MDCACHE_DIR_POPULATED);
 
@@ -1982,7 +1982,7 @@ void lru_clean_chunk(struct dir_chunk *chunk)
 	(void) atomic_dec_int64_t(&lru_state.chunks_used);
 
 	/* Then do the actual cleaning work. */
-	mdcache_clean_dirent_chunk(chunk);
+	mdcache_clean_dirent_chunk(chunk, 1);
 }
 
 /**
