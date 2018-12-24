@@ -59,7 +59,7 @@ static void release(struct fsal_export *exp_hdl)
 	gpfs_unexport_filesystems(myself);
 	fsal_detach_export(exp_hdl->fsal, &exp_hdl->exports);
 	free_export_ops(exp_hdl);
-	close(myself->export_fd);
+/*	close(myself->export_fd);*/
 
 	gsh_free(myself);		/* elvis has left the building */
 }
@@ -71,15 +71,15 @@ static fsal_status_t get_dynamic_info(struct fsal_export *exp_hdl,
 	fsal_status_t status;
 	struct statfs buffstatgpfs;
 	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
-	struct gpfs_fsal_export *exp = container_of(op_ctx->fsal_export,
-					struct gpfs_fsal_export, export);
-	int export_fd = exp->export_fd;
+	struct gpfs_filesystem *gpfs_fs;
 
 	if (!infop) {
 		fsal_error = ERR_FSAL_FAULT;
 		goto out;
 	}
-	status = GPFSFSAL_statfs(export_fd, obj_hdl, &buffstatgpfs);
+	gpfs_fs = obj_hdl->fs->private_data;
+
+	status = GPFSFSAL_statfs(gpfs_fs->root_fd, obj_hdl, &buffstatgpfs);
 	if (FSAL_IS_ERROR(status))
 		return status;
 
@@ -525,8 +525,6 @@ int open_root_fd(struct gpfs_filesystem *gpfs_fs)
 			 gpfs_fs->fs->path, strerror(retval), retval);
 		return retval;
 	}
-	LogFullDebug(COMPONENT_FSAL, "root export_fd %d path %s",
-				gpfs_fs->root_fd, gpfs_fs->fs->path);
 
 	status = fsal_internal_get_handle_at(gpfs_fs->root_fd,
 					     gpfs_fs->fs->path, &fh,
@@ -607,6 +605,7 @@ int gpfs_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 	glist_add_tail(&map->exp->filesystems, &map->on_filesystems);
 	PTHREAD_MUTEX_unlock(&gpfs_fs->upvector_mutex);
 
+#if 0
 	map->exp->export_fd = open(op_ctx->ctx_export->fullpath,
 						O_RDONLY | O_DIRECTORY);
 	if (map->exp->export_fd < 0) {
@@ -619,7 +618,7 @@ int gpfs_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 
 	LogFullDebug(COMPONENT_FSAL, "export_fd %d path %s",
 			map->exp->export_fd, op_ctx->ctx_export->fullpath);
-
+#endif
 	/* We have set up the export. If the file system is already claimed,
 	 * we are done.
 	 */
@@ -665,10 +664,12 @@ int gpfs_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 	return 0;
 
 errout:
+#if 0
 	if (map->exp->export_fd >= 0) {
 		close(map->exp->export_fd);
 		map->exp->export_fd = -1;
 	}
+#endif
 	PTHREAD_MUTEX_lock(&gpfs_fs->upvector_mutex);
 	glist_del(&map->on_filesystems);
 	glist_del(&map->on_exports);

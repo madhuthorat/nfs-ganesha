@@ -54,15 +54,14 @@ GPFSFSAL_readlink(struct fsal_obj_handle *dir_hdl,
 		  size_t link_len)
 {
 	struct gpfs_fsal_obj_handle *gpfs_hdl;
-	struct gpfs_fsal_export *exp = container_of(op_ctx->fsal_export,
-					struct gpfs_fsal_export, export);
-	int export_fd = exp->export_fd;
+	struct gpfs_filesystem *gpfs_fs;
 
 	gpfs_hdl =
 	    container_of(dir_hdl, struct gpfs_fsal_obj_handle, obj_handle);
+	gpfs_fs = dir_hdl->fs->private_data;
 
 	/* Read the link on the filesystem */
-	return fsal_readlink_by_handle(export_fd, gpfs_hdl->handle,
+	return fsal_readlink_by_handle(gpfs_fs->root_fd, gpfs_hdl->handle,
 				       link_content, link_len);
 }
 
@@ -99,9 +98,6 @@ GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl, const char *linkname,
 	int fd;
 	struct gpfs_fsal_obj_handle *gpfs_hdl;
 	struct gpfs_filesystem *gpfs_fs;
-	struct gpfs_fsal_export *exp = container_of(op_ctx->fsal_export,
-					struct gpfs_fsal_export, export);
-	int export_fd = exp->export_fd;
 
 	gpfs_hdl =
 	    container_of(dir_hdl, struct gpfs_fsal_obj_handle, obj_handle);
@@ -115,7 +111,7 @@ GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl, const char *linkname,
 			fso_symlink_support))
 		return fsalstat(ERR_FSAL_NOTSUPP, 0);
 
-	status = fsal_internal_handle2fd(export_fd, gpfs_hdl->handle,
+	status = fsal_internal_handle2fd(gpfs_fs->root_fd, gpfs_hdl->handle,
 					 &fd, O_RDONLY | O_DIRECTORY);
 
 	if (FSAL_IS_ERROR(status))
@@ -142,7 +138,7 @@ GPFSFSAL_symlink(struct fsal_obj_handle *dir_hdl, const char *linkname,
 	/* now get the associated handle, while there is a race, there is
 	   also a race lower down  */
 	status = fsal_internal_get_handle_at(fd, linkname, gpfs_fh,
-					     export_fd);
+					     gpfs_fs->root_fd);
 
 	if (FSAL_IS_ERROR(status)) {
 		close(fd);
