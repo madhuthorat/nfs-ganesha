@@ -311,6 +311,7 @@ struct mdcache_fsal_obj_handle {
 			} avl;
 		} fsdir;		/**< DIRECTORY data */
 	} fsobj;
+	int slept_once;
 };
 
 struct dir_chunk {

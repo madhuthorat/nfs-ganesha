@@ -427,6 +427,8 @@ void mdcache_clean_dirent_chunk(struct dir_chunk *chunk)
 	struct glist_head *glist, *glistn;
 	struct mdcache_fsal_obj_handle *parent = chunk->parent;
 
+	LogEvent(COMPONENT_CACHE_INODE, "Cleaning chunk: %lx",
+		(unsigned long int)chunk);
 	glist_for_each_safe(glist, glistn, &chunk->dirents) {
 		mdcache_dir_entry_t *dirent;
 
@@ -2822,6 +2824,16 @@ again:
 			 * in the meantime.
 			 */
 			PTHREAD_RWLOCK_unlock(&directory->content_lock);
+			if (chunk != NULL && directory->slept_once == 0) {
+				LogEvent(COMPONENT_CACHE_INODE,
+					"SLEEPING.. chunk: %lx,  directory: %lx",
+					(unsigned long int)chunk,
+					(unsigned long int)directory);
+				/* set slept_once to 1, so that we don't sleep
+				again for the same directory */
+				directory->slept_once = 1;
+				sleep(30);
+			}
 			PTHREAD_RWLOCK_wrlock(&directory->content_lock);
 			has_write = true;
 			goto again;
