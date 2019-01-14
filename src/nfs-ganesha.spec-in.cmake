@@ -386,6 +386,7 @@ cmake .	-DCMAKE_BUILD_TYPE=Debug			\
 	-DUSE_FSAL_VFS=ON				\
 	-DUSE_FSAL_PROXY=ON				\
 	-DUSE_DBUS=ON					\
+	-D_VALGRIND_MEMCHECK=ON                         \
 	-DUSE_9P=ON					\
 	-DDISTNAME_HAS_GIT_DATA=OFF			\
 	-DUSE_MAN_PAGE=%{use_man_page}                  \
