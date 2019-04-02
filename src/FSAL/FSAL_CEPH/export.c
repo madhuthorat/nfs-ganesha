@@ -494,6 +494,21 @@ static uint32_t fs_xattr_access_rights(struct fsal_export *export_pub)
 }
 
 /**
+ * @brief Return the expiration time for parent handle
+ *
+ * This function returns the expiration time for parent handle
+ *
+ * @param[in] export_pub The public export
+ *
+ * @return -1
+ */
+
+static int32_t fs_expiretimeparent(struct fsal_export *export_pub)
+{
+	return -1;
+}
+
+/**
  * @brief Set operations for exports
  *
  * This function overrides operations that we've implemented, leaving
@@ -523,6 +538,7 @@ void export_ops_init(struct export_ops *ops)
 	ops->fs_xattr_access_rights = fs_xattr_access_rights;
 	ops->alloc_state = ceph_alloc_state;
 	ops->free_state = ceph_free_state;
+	ops->fs_expiretimeparent = fs_expiretimeparent;
 #ifdef CEPH_PNFS
 	export_ops_pnfs(ops);
 #endif				/* CEPH_PNFS */

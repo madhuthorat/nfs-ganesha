@@ -697,6 +697,10 @@ typedef struct fsal_staticfsinfo_t {
 	bool compute_readdir_cookie;
 	bool whence_is_name;
 	bool readdir_plus;	/*< FSAL supports readdir_plus */
+	int32_t expire_time_parent; /*< Expiration time interval in
+				       seconds for parent handle.
+				       Defaults to -1 which means it never
+				       expires */
 } fsal_staticfsinfo_t;
 
 /**
