@@ -385,6 +385,11 @@ mdc_get_parent_handle(struct mdcache_fsal_export *export,
 	/* And store in the parent host-handle */
 	mdcache_copy_fh(&entry->fsobj.fsdir.parent, &fh_desc);
 
+	if (mdcache_param.expire_time_parent > 0)
+		entry->fsobj.fsdir.parent_time = time(NULL);
+	else
+		entry->fsobj.fsdir.parent_time = 0;
+
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -406,7 +411,12 @@ mdc_get_parent(struct mdcache_fsal_export *export, mdcache_entry_t *entry)
 
 	if (entry->fsobj.fsdir.parent.len != 0) {
 		/* Already has a parent pointer */
-		return;
+		if (mdcache_is_parent_valid(entry)) {
+			return;
+		} else {
+			/* Clean up parent key */
+			mdcache_free_fh(&entry->fsobj.fsdir.parent);
+		}
 	}
 
 	subcall_raw(export,

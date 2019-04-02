@@ -293,6 +293,10 @@ struct mdcache_fsal_obj_handle {
 			struct state_hdl dhdl; /**< Storage for dir state */
 			/** The parent host-handle of this directory ('..') */
 			struct gsh_buffdesc parent;
+			/** Time at which we last refreshed parent
+			  * host-handle.
+			  */
+			time_t parent_time;
 			/** The first dirent cookie in this directory.
 			 *  0 if not known.
 			 */
@@ -503,6 +507,8 @@ fsal_status_t mdcache_readdir_chunked(mdcache_entry_t *directory,
 void mdc_get_parent(struct mdcache_fsal_export *export,
 		    mdcache_entry_t *entry);
 
+static inline void
+mdcache_free_fh(struct gsh_buffdesc *fh_desc);
 
 /**
  * @brief Atomically test the bits in mde_flags.
@@ -624,6 +630,19 @@ mdcache_key_dup(mdcache_key_t *tgt,
 	tgt->fsal = src->fsal;
 }
 
+static inline bool
+mdcache_is_parent_valid(mdcache_entry_t *entry)
+{
+	if (mdcache_param.expire_time_parent > 0) {
+		time_t current_time = time(NULL);
+
+		if (current_time - entry->fsobj.fsdir.parent_time >
+		    mdcache_param.expire_time_parent)
+			return false;
+	}
+	return true;
+}
+
 /**
  * @brief Set the parent key of an entry
  *
@@ -635,13 +654,21 @@ mdcache_key_dup(mdcache_key_t *tgt,
 static inline void
 mdc_dir_add_parent(mdcache_entry_t *entry, mdcache_entry_t *mdc_parent)
 {
-	if (entry->fsobj.fsdir.parent.len == 0) {
-		/* The parent key must be a host-handle so that
-		 * create_handle() works in all cases.
-		 */
-		mdc_get_parent_handle(mdc_cur_export(), entry,
-				      mdc_parent->sub_handle);
+	if (entry->fsobj.fsdir.parent.len != 0) {
+		/* Already has a parent pointer */
+		if (mdcache_is_parent_valid(entry)) {
+			return;
+		} else {
+			/* Clean up parent key */
+			mdcache_free_fh(&entry->fsobj.fsdir.parent);
+		}
 	}
+
+	/* The parent key must be a host-handle so that
+	 * create_handle() works in all cases.
+	 */
+	mdc_get_parent_handle(mdc_cur_export(), entry,
+			      mdc_parent->sub_handle);
 }
 
 /**

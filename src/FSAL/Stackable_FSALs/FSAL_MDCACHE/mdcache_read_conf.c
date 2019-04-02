@@ -93,6 +93,8 @@ static struct config_item mdcache_params[] = {
 		       mdcache_parameter, futility_count),
 	CONF_ITEM_BOOL("Retry_Readdir", false,
 		       mdcache_parameter, retry_readdir),
+	CONF_ITEM_I32("Parent_Expiration_Time", -1, INT32_MAX, 60,
+		      mdcache_parameter, expire_time_parent),
 	CONFIG_EOL
 };
 

@@ -122,6 +122,9 @@ struct mdcache_parameter {
 	    client a partial reply based on what we have.
 	    Defaults to false, settable with Retry_Readdir */
 	bool retry_readdir;
+	/** Expiration time interval in seconds for parent handle. Defaults
+	    to 60. Settable with Parent_Expiration_Time */
+	int32_t expire_time_parent;
 };
 
 extern struct mdcache_parameter mdcache_param;
