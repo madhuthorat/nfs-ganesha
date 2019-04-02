@@ -420,7 +420,11 @@ void nullfs_export_ops_init(struct export_ops *ops)
 	ops->fs_acl_support = fs_acl_support;
 	ops->fs_supported_attrs = fs_supported_attrs;
 	ops->fs_umask = fs_umask;
+<<<<<<< HEAD
 	ops->fs_xattr_access_rights = fs_xattr_access_rights;
+=======
+	ops->fs_expiretimeparent = fs_expiretimeparent;
+>>>>>>> 3c25681... Add 'expire_time_parent' parameter and refill parent handle if expired
 	ops->get_quota = get_quota;
 	ops->set_quota = set_quota;
 	ops->alloc_state = nullfs_alloc_state;
