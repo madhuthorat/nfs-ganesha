@@ -849,18 +849,34 @@ fsal_status_t mdcache_read2(struct fsal_obj_handle *obj_hdl,
 		container_of(obj_hdl, mdcache_entry_t, obj_handle);
 	fsal_status_t status;
 
+<<<<<<< HEAD
 	subcall(
 		status = entry->sub_handle->obj_ops.read2(
 			entry->sub_handle, bypass, state, offset, buf_size,
 			buffer, read_amount, eof, info)
 	       );
+=======
+	/*
+	 * cb will drop the initial ref, take an additional ref to prevent the
+	 * entry from getting freed/reaped.
+	 */
+	mdcache_get(entry);
+	supercall(
+		  arg->cb(arg->obj_hdl, ret, obj_data, arg->cb_arg);
+		 );
+>>>>>>> 48aba24... MDCACHE: Don't deref the mdcache_entry pointer once the ref is dropped.
 
 	if (!FSAL_IS_ERROR(status))
 		mdc_set_time_current(&entry->attrs.atime);
 	else if (status.major == ERR_FSAL_DELAY)
 		mdcache_kill_entry(entry);
+<<<<<<< HEAD
 
 	return status;
+=======
+	mdcache_put(entry);
+	gsh_free(arg);
+>>>>>>> 48aba24... MDCACHE: Don't deref the mdcache_entry pointer once the ref is dropped.
 }
 
 /**
@@ -899,13 +915,83 @@ fsal_status_t mdcache_write2(struct fsal_obj_handle *obj_hdl,
 			buffer, write_amount, fsal_stable, info)
 	       );
 
+<<<<<<< HEAD
 	if (status.major == ERR_FSAL_STALE)
+=======
+/**
+ * @brief Callback for MDCACHE write calls
+ *
+ * Unstack, and call up.
+ *
+ * @param[in] obj		Object being acted on
+ * @param[in] ret		Return status of call
+ * @param[in] obj_data		Data for call
+ * @param[in] caller_data	Data for caller
+ */
+static void mdc_write_cb(struct fsal_obj_handle *obj, fsal_status_t ret,
+			void *obj_data, void *caller_data)
+{
+	struct mdc_async_arg *arg = caller_data;
+	mdcache_entry_t *entry =
+		container_of(arg->obj_hdl, mdcache_entry_t, obj_handle);
+
+	if (ret.major == ERR_FSAL_STALE) {
+		/*
+		 * killing the entry might drop the sentinel ref. Take an
+		 * extra ref to prevent this entry for being reused.
+		 */
+		mdcache_get(entry);
+>>>>>>> 48aba24... MDCACHE: Don't deref the mdcache_entry pointer once the ref is dropped.
 		mdcache_kill_entry(entry);
+	}
 	else
 		atomic_clear_uint32_t_bits(&entry->mde_flags,
 					   MDCACHE_TRUST_ATTRS);
 
+<<<<<<< HEAD
 	return status;
+=======
+	supercall(
+		  arg->cb(arg->obj_hdl, ret, obj_data, arg->cb_arg);
+		 );
+
+	if (ret.major == ERR_FSAL_STALE)
+		mdcache_put(entry);
+	gsh_free(arg);
+}
+
+/**
+ * @brief Write to a file (new style)
+ *
+ * Delegate to sub-FSAL
+ *
+ * @param[in] obj_hdl		Object owning state
+ * @param[in] bypass		Bypass any non-mandatory deny write
+ * @param[in,out] done_cb	Callback to call when I/O is done
+ * @param[in,out] read_arg	Info about read, passed back in callback
+ * @param[in,out] caller_arg	Opaque arg from the caller for callback
+ */
+void mdcache_write2(struct fsal_obj_handle *obj_hdl,
+		    bool bypass,
+		    fsal_async_cb done_cb,
+		    struct fsal_io_arg *write_arg,
+		    void *caller_arg)
+{
+	mdcache_entry_t *entry =
+		container_of(obj_hdl, mdcache_entry_t, obj_handle);
+	struct mdc_async_arg *arg;
+
+	/* Set up async callback */
+	arg = gsh_calloc(1, sizeof(*arg));
+	arg->obj_hdl = obj_hdl;
+	arg->cb = done_cb;
+	arg->cb_arg = caller_arg;
+
+	subcall(
+		entry->sub_handle->obj_ops->write2(entry->sub_handle, bypass,
+						  mdc_write_cb, write_arg, arg)
+	       );
+>>>>>>> 48aba24... MDCACHE: Don't deref the mdcache_entry pointer once the ref is dropped.
 }
 
 /**
