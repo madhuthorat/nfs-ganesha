@@ -3097,8 +3097,10 @@ bool fsal_common_is_referral(struct fsal_obj_handle *obj_hdl,
 		status = obj_hdl->obj_ops->getattrs(obj_hdl, attrs);
 		if (FSAL_IS_ERROR(status)) {
 			LogEvent(COMPONENT_FSAL, "Failed to get attributes for "
-				 "referral, request_mask: %lu",
-				 attrs->request_mask);
+				 "referral, request_mask: %lu, error: %s",
+				 attrs->request_mask,
+				 msg_fsal_err(status.major));
+			abort();
 			return false;
 		}
 	}
