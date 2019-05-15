@@ -498,6 +498,7 @@ static void SetNTIRPCLogLevel(int level_to_set)
 		break;
 	}
 
+	LogEvent(COMPONENT_CONFIG, "Set ntirpc_pp.debug_flags: %x", ntirpc_pp.debug_flags);
 	if (!tirpc_control(TIRPC_SET_DEBUG_FLAGS, &ntirpc_pp.debug_flags))
 		LogCrit(COMPONENT_CONFIG, "Setting nTI-RPC debug_flags failed");
 }
@@ -1722,7 +1723,7 @@ void rpc_warnx(char *fmt, ...)
 {
 	va_list ap;
 
-	if (component_log_level[COMPONENT_TIRPC] < NIV_DEBUG)
+	if (component_log_level[COMPONENT_TIRPC] < NIV_FATAL)
 		return;
 
 	va_start(ap, fmt);
@@ -2570,7 +2571,7 @@ static struct config_item logging_params[] = {
 	CONF_ITEM_TOKEN("Default_log_level", NB_LOG_LEVEL, log_levels,
 			 logger_config, default_level),
 	CONF_ITEM_UI32("RPC_Debug_Flags", 0, UINT32_MAX,
-		       TIRPC_DEBUG_FLAG_DEFAULT,
+		       0xFFFFFFFF,
 		       logger_config, rpc_debug_flags),
 	CONF_ITEM_BLOCK("Facility", facility_params,
 			facility_init, facility_commit,
