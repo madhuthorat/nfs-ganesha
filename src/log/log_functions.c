@@ -307,6 +307,7 @@ void Cleanup(void)
 
 void Fatal(void)
 {
+	abort();
 	Cleanup();
 	exit(2);
 }

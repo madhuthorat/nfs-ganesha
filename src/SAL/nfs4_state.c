@@ -167,6 +167,8 @@ state_status_t _state_add_impl(struct fsal_obj_handle *obj,
 	pnew_state->state_export = op_ctx->ctx_export;
 	pnew_state->state_owner = owner_input;
 	pnew_state->state_obj = obj;
+	if (obj == NULL)
+		LogEvent(COMPONENT_STATE, "setting NULL obj for state: %p", pnew_state);
 
 	/* Add the state to the related hashtable */
 	status = nfs4_State_Set(pnew_state);
@@ -332,6 +334,7 @@ void _state_del_locked(state_t *state, const char *func, int line)
 	struct gsh_export *export;
 	state_owner_t *owner;
 
+	LogEvent(COMPONENT_STATE, "called for state: %p", state);
 	if (isDebug(COMPONENT_STATE)) {
 		display_stateid(&dspbuf, state);
 		str_valid = true;
@@ -390,6 +393,8 @@ void _state_del_locked(state_t *state, const char *func, int line)
 	state->state_obj = NULL;
 	PTHREAD_MUTEX_unlock(&state->state_mutex);
 
+	LogEvent(COMPONENT_STATE, "set state->state_obj: NULL, state_owner: %p for state: %p", owner, state);
+
 	/* We need to close the state at this point. The state will
 	 * eventually be freed and it must be closed before free. This
 	 * is the last point we have a valid reference to the object
@@ -429,6 +434,8 @@ void _state_del_locked(state_t *state, const char *func, int line)
 			/* Retain the reference held by the state, and track
 			 * when this owner was last closed.
 			 */
+
+			LogEvent(COMPONENT_STATE, "owner_retain: %d" , owner_retain);
 			PTHREAD_MUTEX_lock(&cached_open_owners_lock);
 
 			atomic_store_time_t(&nfs4_owner->so_cache_expire,
@@ -796,6 +803,15 @@ void release_openstate(state_owner_t *owner)
 			 */
 			PTHREAD_MUTEX_unlock(&owner->so_mutex);
 			errcnt++;
+			LogEvent(COMPONENT_STATE,
+				 "errcnt: %d, state: %p, obj: %p, export: %p",
+				 errcnt, state, obj, export);
+			if (state != NULL) {
+				LogEvent(COMPONENT_STATE,
+				"state %p state_obj %p state_export %p state_owner %p",
+				state, state->state_obj, state->state_export,
+				state->state_owner);
+			}
 			continue;
 		}
 
@@ -819,6 +835,8 @@ void release_openstate(state_owner_t *owner)
 		 * state_del_locked.
 		 */
 
+		if (state != NULL)
+			LogEvent(COMPONENT_STATE, "calling state_del_locked for state: %p", state);
 		state_del_locked(state);
 
 		dec_state_t_ref(state);

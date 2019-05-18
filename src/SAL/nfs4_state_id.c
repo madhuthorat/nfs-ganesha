@@ -680,6 +680,8 @@ struct state_t *nfs4_State_Get_Obj(struct fsal_obj_handle *obj,
 
 	state_key.state_owner = owner;
 	state_key.state_obj = obj;
+	if (obj == NULL)
+		LogEvent(COMPONENT_STATE, "set obj=NULL for state: %p", &state_key);
 
 	rc = hashtable_getlatch(ht_state_obj,
 				&buffkey,
