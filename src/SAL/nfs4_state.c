@@ -717,9 +717,12 @@ enum nfsstat4 release_lock_owner(state_owner_t *owner)
  */
 void release_openstate(state_owner_t *owner)
 {
-	int errcnt = 0;
+	long long int errcnt = 0;
 	bool ok;
 	struct state_nfs4_owner_t *nfs4_owner = &owner->so_owner.so_nfs4_owner;
+	char buff[20];
+	time_t end_time, start_time, current_time;
+	struct timeval t1, t2, tdiff;
 
 	if (isFullDebug(COMPONENT_STATE)) {
 		char str[LOG_BUFF_LEN] = "\0";
@@ -730,8 +733,13 @@ void release_openstate(state_owner_t *owner)
 		LogFullDebug(COMPONENT_STATE, "Release {%s}", str);
 	}
 
+	start_time = time(NULL);
+	gettimeofday(&t1, NULL);
+	strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&start_time));
+	LogEvent(COMPONENT_STATE, "Start time: %s", buff);
+
 	/* Only accept so many errors before giving up. */
-	while (errcnt < STATE_ERR_MAX) {
+	while (errcnt < INT64_MAX) {
 		state_t *state;
 		struct fsal_obj_handle *obj = NULL;
 		struct gsh_export *export = NULL;
@@ -766,6 +774,13 @@ void release_openstate(state_owner_t *owner)
 				PTHREAD_MUTEX_unlock(&owner->so_mutex);
 				uncache_nfs4_owner(nfs4_owner);
 				PTHREAD_MUTEX_unlock(&cached_open_owners_lock);
+
+				end_time = time(NULL);
+				gettimeofday(&t2, NULL);
+				timersub(&t2, &t1, &tdiff);
+				strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&end_time));
+				LogEvent(COMPONENT_STATE, "End time: %s, time elapsed since start time: %d.%06ds",
+					 buff, (int)tdiff.tv_sec, (int)tdiff.tv_usec);
 				return;
 			}
 
@@ -785,6 +800,13 @@ void release_openstate(state_owner_t *owner)
 
 		if (state == NULL) {
 			PTHREAD_MUTEX_unlock(&owner->so_mutex);
+
+			end_time = time(NULL);
+			gettimeofday(&t2, NULL);
+			timersub(&t2, &t1, &tdiff);
+			strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&end_time));
+			LogEvent(COMPONENT_STATE, "End time: %s, time elapsed since start time: %d.%06ds",
+				 buff, (int)tdiff.tv_sec, (int)tdiff.tv_usec);
 			return;
 		}
 
@@ -803,14 +825,21 @@ void release_openstate(state_owner_t *owner)
 			 */
 			PTHREAD_MUTEX_unlock(&owner->so_mutex);
 			errcnt++;
-			LogEvent(COMPONENT_STATE,
-				 "errcnt: %d, state: %p, obj: %p, export: %p",
-				 errcnt, state, obj, export);
-			if (state != NULL) {
+			LogEvent(COMPONENT_STATE, "errcnt: %lld", errcnt);
+			if ((errcnt % STATE_ERR_MAX) == 0) {
+				current_time = time(NULL);
+				gettimeofday(&t2, NULL);
+				timersub(&t2, &t1, &tdiff);
+				strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&current_time));
 				LogEvent(COMPONENT_STATE,
-				"state %p state_obj %p state_export %p state_owner %p",
-				state, state->state_obj, state->state_export,
-				state->state_owner);
+					 "errcnt: %lld, state: %p, obj: %p, export: %p, Current time: %s, time elapsed: %d.%06ds",
+					 errcnt, state, obj, export, buff, (int)tdiff.tv_sec, (int)tdiff.tv_usec);
+				if (state != NULL) {
+					LogEvent(COMPONENT_STATE,
+					"state %p state_obj %p state_export %p state_owner %p",
+					state, state->state_obj, state->state_export,
+					state->state_owner);
+				}
 			}
 			continue;
 		}
@@ -850,15 +879,22 @@ void release_openstate(state_owner_t *owner)
 		op_ctx->fsal_export = NULL;
 	}
 
+	end_time = time(NULL);
+	gettimeofday(&t2, NULL);
+	timersub(&t2, &t1, &tdiff);
+	strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&end_time));
+	LogEvent(COMPONENT_STATE, "End time: %s, time elapsed since start time: %d.%06ds",
+		 buff, (int)tdiff.tv_sec, (int)tdiff.tv_usec);
+
 	if (errcnt == STATE_ERR_MAX) {
 		char str[LOG_BUFF_LEN] = "\0";
 		struct display_buffer dspbuf = {sizeof(str), str, str};
 
 		display_owner(&dspbuf, owner);
 
-		LogFatal(COMPONENT_STATE,
-			 "Could not complete cleanup of lock state for lock owner %s",
-			 str);
+		LogCrit(COMPONENT_STATE,
+			 "errcnt: %lld, Could not complete cleanup of lock state for lock owner %s",
+			 errcnt, str);
 	}
 }
 
