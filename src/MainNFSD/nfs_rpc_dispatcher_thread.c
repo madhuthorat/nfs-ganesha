@@ -1287,7 +1287,7 @@ int free_nfs_request(request_data_t *reqdata)
 	SVCXPRT *xprt = reqdata->r_u.req.svc.rq_xprt;
 	uint32_t refs = atomic_dec_uint32_t(&reqdata->r_u.req.svc.rq_refcnt);
 
-	LogEvent(COMPONENT_DISPATCH,
+	LogDebug(COMPONENT_DISPATCH,
 		 "%s: %p fd %d xp_refcnt %" PRIu32 " rq_refcnt %" PRIu32,
 		 __func__,
 		 xprt, xprt->xp_fd, xprt->xp_refcnt,
