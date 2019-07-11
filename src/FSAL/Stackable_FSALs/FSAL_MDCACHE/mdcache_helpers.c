@@ -3037,13 +3037,19 @@ again:
 		if (!has_write) {
 			/* Upgrade to write lock and retry just in case
 			 * another thread managed to populate this cookie
-			 * in the meantime.
+			 * in the meantime.  We need to drop our ref on chunk
+			 * (if any) since it could be nuked when we drop the
+			 * lock.
 			 */
+			if (chunk) {
+				mdcache_lru_unref_chunk(chunk);
+				chunk = NULL;
+			}
+
 			PTHREAD_RWLOCK_unlock(&directory->content_lock);
 			PTHREAD_RWLOCK_wrlock(&directory->content_lock);
 			has_write = true;
 			first_pass = true;
-			chunk = NULL;
 			goto again;
 		}
 
@@ -3197,12 +3203,6 @@ again:
 	/* Bump the chunk in the LRU */
 	lru_bump_chunk(chunk);
 
-	/* We can drop the ref now, we've bumped.  This cannot be the last ref
-	 * drop.  To get here, we had at least 2 refs, and we also hold the
-	 * content_lock for at least read.  This means noone holds it for write,
-	 * and all final ref drops are done with it held for write. */
-	mdcache_lru_unref_chunk(chunk);
-
 	LogFullDebugAlt(COMPONENT_NFS_READDIR, COMPONENT_CACHE_INODE,
 			"About to read directory=%p cookie=%" PRIx64,
 			directory, next_ck);
@@ -3255,20 +3255,21 @@ again:
 				 */
 				look_ck = dirent->ck;
 
+				/* Dropping the content_lock may invalidate some
+				 * or all of the dirents and/or chunks in this
+				 * directory.  We need to start over from this
+				 * point.  look_ck is now correct if the dirent
+				 * is still cached, and we haven't changed
+				 * next_ck, so it's still correct for reloading
+				 * the chunk.
+				 */
+				first_pass = true;
+				mdcache_lru_unref_chunk(chunk);
+				chunk = NULL;
+
 				PTHREAD_RWLOCK_unlock(&directory->content_lock);
 				PTHREAD_RWLOCK_wrlock(&directory->content_lock);
 				has_write = true;
-
-				/* Dropping the content_lock may have
-				 * invalidated some or all of the dirents and/or
-				 * chunks in this directory.  We need to start
-				 * over from this point.  look_ck is now correct
-				 * if the dirent is still cached, and we haven't
-				 * changed next_ck, so it's still correct for
-				 * reloading the chunk.
-				 */
-				first_pass = true;
-				chunk = NULL;
 
 				/* Now we need to look for this dirent again.
 				 * We haven't updated next_ck for this dirent
@@ -3295,6 +3296,7 @@ again:
 				/* In order to get here, we passed the has_write
 				 * check above, and took the write lock. */
 				mdcache_lru_unref_chunk(chunk);
+				mdcache_lru_unref_chunk(chunk);
 				chunk = NULL;
 				goto again;
 			}
@@ -3303,6 +3305,7 @@ again:
 						     &entry, NULL);
 
 			if (FSAL_IS_ERROR(status)) {
+				mdcache_lru_unref_chunk(chunk);
 				PTHREAD_RWLOCK_unlock(&directory->content_lock);
 
 				LogFullDebugAlt(COMPONENT_NFS_READDIR,
@@ -3367,6 +3370,7 @@ again:
 
 			mdcache_put(entry);
 
+			mdcache_lru_unref_chunk(chunk);
 			PTHREAD_RWLOCK_unlock(&directory->content_lock);
 
 			return status;
@@ -3423,6 +3427,7 @@ again:
 				    "readdir completed, eod = %s",
 				    *eod_met ? "true" : "false");
 
+			mdcache_lru_unref_chunk(chunk);
 			PTHREAD_RWLOCK_unlock(&directory->content_lock);
 
 			return status;
