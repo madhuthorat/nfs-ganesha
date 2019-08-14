@@ -349,6 +349,7 @@ static bool admin_dbus_init_fds_limit(DBusMessageIter *args,
 		goto out;
 	}
 
+	LogEvent(COMPONENT_DBUS, "Calling init_fds_limit");
 	init_fds_limit();
 
  out:

@@ -1599,6 +1599,8 @@ void init_fds_limit(void)
 		.rlim_max = RLIM_INFINITY
 	};
 
+	LogEvent(COMPONENT_CACHE_INODE_LRU,
+		 "Inside init_fds_limit()");
 	/* Find out the system-imposed file descriptor limit */
 	if (getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
 		code = errno;
@@ -1607,12 +1609,17 @@ void init_fds_limit(void)
 			code, FD_FALLBACK_LIMIT);
 		lru_state.fds_system_imposed = FD_FALLBACK_LIMIT;
 	} else {
+		LogEvent(COMPONENT_CACHE_INODE_LRU,
+			 "Current rlim.rlim_cur: %" PRIu64
+			 " rlim.rlim_max: %" PRIu64,
+			 (uint64_t) rlim.rlim_cur, (uint64_t) rlim.rlim_max);
+
 		if (rlim.rlim_cur < rlim.rlim_max) {
 			/* Save the old soft value so we can fall back to it
 			   if setrlimit fails. */
 			rlim_t old_soft = rlim.rlim_cur;
 
-			LogInfo(COMPONENT_CACHE_INODE_LRU,
+			LogEvent(COMPONENT_CACHE_INODE_LRU,
 				"Attempting to increase soft limit from %"
 				PRIu64 " to hard limit of %" PRIu64,
 				(uint64_t) rlim.rlim_cur,
@@ -1661,8 +1668,10 @@ err_open:
 			;
 		} else {
 			lru_state.fds_system_imposed = rlim.rlim_cur;
+			LogEvent(COMPONENT_CACHE_INODE_LRU,
+				 "Setting fds_system_imposed to rlim.rlim_cur");
 		}
-		LogInfo(COMPONENT_CACHE_INODE_LRU,
+		LogEvent(COMPONENT_CACHE_INODE_LRU,
 			"Setting the system-imposed limit on FDs to %d.",
 			lru_state.fds_system_imposed);
 	}
@@ -1678,6 +1687,14 @@ err_open:
 	     lru_state.fds_system_imposed) / 100;
 	lru_state.futility = 0;
 
+	LogEvent(COMPONENT_CACHE_INODE_LRU,
+		 "Setting FD Hard Limit: %" PRIu32
+		 " FDs Hiwat: %" PRIu32
+		 " FDs Lowat: %" PRIu32,
+		 lru_state.fds_hard_limit,
+		 lru_state.fds_hiwat,
+		 lru_state.fds_lowat);
+
 	if (mdcache_param.reaper_work) {
 		/* Backwards compatibility */
 		lru_state.per_lane_work = (mdcache_param.reaper_work +
@@ -1690,6 +1707,8 @@ err_open:
 	lru_state.biggest_window =
 	    (mdcache_param.biggest_window *
 	     lru_state.fds_system_imposed) / 100;
+
+	LogEvent(COMPONENT_CACHE_INODE_LRU, "Exiting init_fds_limit");
 }
 
 /* Public functions */
