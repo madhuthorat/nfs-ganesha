@@ -1434,8 +1434,17 @@ static enum xprt_stat nfs_rpc_process_request(request_data_t *reqdata)
 	}
 
 	/* Finalize the request. */
-	if (res_nfs)
+	if (res_nfs) {
+		if (reqdata->r_u.req.svc.rq_msg.cb_prog == NFS_program[P_NFS] &&
+		    reqdata->r_u.req.svc.rq_msg.cb_vers == NFS_V3) {
+			struct myv3res {
+				nfsstat3 status;
+			};
+			struct myv3res *res = (struct myv3res*)res_nfs;
+			LogEvent(COMPONENT_DISPATCH, "res.status: %d", res->status);
+		}
 		nfs_dupreq_rele(&reqdata->r_u.req.svc, reqdesc);
+	}
 
 	SetClientIP(NULL);
 	if (op_ctx->client != NULL) {

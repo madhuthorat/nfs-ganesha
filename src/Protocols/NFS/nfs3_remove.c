@@ -164,6 +164,8 @@ int nfs3_remove(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 	if (parent_obj)
 		parent_obj->obj_ops->put_ref(parent_obj);
 
+	LogEvent(COMPONENT_NFSPROTO, "res->res_remove3.status: %x, fsal_status: %d",
+		 res->res_remove3.status, fsal_status.major);
 	return rc;
 
 }				/* nfs3_remove */

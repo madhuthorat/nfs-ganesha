@@ -143,6 +143,8 @@ int nfs3_lookup(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 	if (obj_file)
 		obj_file->obj_ops->put_ref(obj_file);
 
+	LogEvent(COMPONENT_NFSPROTO, "res->res_lookup3.status: %x, fsal_status: %d",
+		 res->res_lookup3.status, fsal_status.major);
 	return rc;
 }				/* nfs3_lookup */
 

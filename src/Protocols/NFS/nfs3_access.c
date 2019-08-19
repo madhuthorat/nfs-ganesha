@@ -124,6 +124,9 @@ int nfs3_access(nfs_arg_t *arg, struct svc_req *req, nfs_res_t *res)
 	if (entry)
 		entry->obj_ops->put_ref(entry);
 
+	LogEvent(COMPONENT_NFSPROTO, "res->res_access3.status: %x, fsal_errors: %d",
+		 res->res_access3.status, fsal_errors);
+
 	return rc;
 }				/* nfs3_access */
 

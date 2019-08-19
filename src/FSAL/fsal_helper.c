@@ -665,16 +665,19 @@ fsal_status_t fsal_lookup(struct fsal_obj_handle *parent,
 	}
 
 	fsal_status = fsal_access(parent, access_mask);
-	if (FSAL_IS_ERROR(fsal_status))
+	if (FSAL_IS_ERROR(fsal_status)) {
+		LogEvent(COMPONENT_FSAL, "fsal_access failed: %s",
+			 fsal_err_txt(fsal_status));
 		return fsal_status;
+	}
 
+	LogEvent(COMPONENT_FSAL, "Doing lookup of %s", name);
 	if (strcmp(name, ".") == 0) {
 		parent->obj_ops->get_ref(parent);
 		*obj = parent;
 		return get_optional_attrs(*obj, attrs_out);
 	} else if (strcmp(name, "..") == 0)
 		return fsal_lookupp(parent, obj, attrs_out);
-
 
 	return parent->obj_ops->lookup(parent, name, obj, attrs_out);
 }
@@ -1219,8 +1222,11 @@ fsal_remove(struct fsal_obj_handle *parent, const char *name)
 #ifdef ENABLE_RFC_ACL
 	status = fsal_remove_access(parent, to_remove_obj,
 				    (to_remove_obj->type == DIRECTORY));
-	if (FSAL_IS_ERROR(status))
+	if (FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "fsal_remove_access failed with: %s",
+			 fsal_err_txt(status));
 		goto out;
+	}
 #endif /* ENABLE_RFC_ACL */
 
 	status = parent->obj_ops->unlink(parent, to_remove_obj, name);
