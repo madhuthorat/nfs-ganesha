@@ -368,4 +368,8 @@ void mdcache_dbus_show(DBusMessageIter *iter)
 }
 #endif /* USE_DBUS */
 
+bool mdcache_lru_caching_fds(void)
+{
+	return mdcache_param.use_fd_cache;
+}
 /** @} */
