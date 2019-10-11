@@ -168,6 +168,7 @@ GPFSFSAL_lookup(const struct req_op_context *op_ctx,
 				 "Lookup of %s crosses filesystem boundary to unknown file system fsid=0x%016"
 				 PRIx64".0x%016"PRIx64,
 				 filename, fsid.major, fsid.minor);
+			fsal_internal_close(parent_fd, NULL, 0);
 			return fsalstat(ERR_FSAL_XDEV, EXDEV);
 		}
 
@@ -178,6 +179,7 @@ GPFSFSAL_lookup(const struct req_op_context *op_ctx,
 				 (*new_fs)->fsal != NULL
 					? (*new_fs)->fsal->name
 					: "(none)");
+			fsal_internal_close(parent_fd, NULL, 0);
 			return fsalstat(ERR_FSAL_XDEV, EXDEV);
 		} else {
 			LogDebug(COMPONENT_FSAL,
