@@ -645,6 +645,8 @@ void state_nfs4_state_wipe(struct state_hdl *ostate)
 		 */
 		if (state->state_type == STATE_TYPE_SHARE)
 			continue;
+		LogEvent(COMPONENT_FSAL, "In first loop for ostate: %p, calling state_del_locked for state: %p, state_type: %d, state_obj: %p",
+			 ostate, state, state->state_type, state->state_obj);
 		state_del_locked(state);
 	}
 
@@ -653,6 +655,8 @@ void state_nfs4_state_wipe(struct state_hdl *ostate)
 		state = glist_entry(glist, state_t, state_list);
 		if (state->state_type > STATE_TYPE_LAYOUT)
 			continue;
+		LogEvent(COMPONENT_FSAL, "In second loop for ostate: %p, calling state_del_locked for state: %p, state_type: %d, state_obj: %p",
+			 ostate, state, state->state_type, state->state_obj);
 		state_del_locked(state);
 	}
 
