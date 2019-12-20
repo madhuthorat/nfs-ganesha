@@ -1992,6 +1992,8 @@ _mdcache_lru_unref(mdcache_entry_t *entry, uint32_t flags, const char *func,
 
 	refcnt = atomic_dec_int32_t(&entry->lru.refcnt);
 
+	LogEvent(COMPONENT_FSAL, "entry: %p, &entry->obj_handle: %p, entry->sub_handle: %p, refcnt: %d",
+		 entry, &entry->obj_handle, entry->sub_handle, refcnt);
 #ifdef USE_LTTNG
 	tracepoint(mdcache, mdc_lru_unref,
 		   func, line, &entry->obj_handle, entry->sub_handle, refcnt);
@@ -2021,6 +2023,7 @@ _mdcache_lru_unref(mdcache_entry_t *entry, uint32_t flags, const char *func,
 		QUNLOCK(qlane);
 
 		mdcache_lru_clean(entry);
+		entry->obj_handle.state_hdl = NULL;
 		pool_free(mdcache_entry_pool, entry);
 		freed = true;
 

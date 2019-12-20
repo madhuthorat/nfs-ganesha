@@ -167,6 +167,7 @@ state_status_t _state_add_impl(struct fsal_obj_handle *obj,
 	pnew_state->state_export = op_ctx->ctx_export;
 	pnew_state->state_owner = owner_input;
 	pnew_state->state_obj = obj;
+	LogEvent(COMPONENT_FSAL, "_state_add_impl: OBJ: %p", obj);
 
 	/* Add the state to the related hashtable */
 	status = nfs4_State_Set(pnew_state);
@@ -377,6 +378,7 @@ void _state_del_locked(state_t *state, const char *func, int line)
 	owner = state->state_owner;
 	PTHREAD_MUTEX_unlock(&state->state_mutex);
 
+	LogEvent(COMPONENT_STATE, "_state_del_locked: obj: %p", obj);
 	if (owner != NULL) {
 		bool owner_retain = false;
 		struct state_nfs4_owner_t *nfs4_owner;
@@ -633,9 +635,12 @@ void state_nfs4_state_wipe(struct state_hdl *ostate)
 	struct glist_head *glist, *glistn;
 	state_t *state = NULL;
 
-	if (glist_empty(&ostate->file.list_of_states))
+	if (glist_empty(&ostate->file.list_of_states)) {
+		LogEvent(COMPONENT_FSAL, "NO STATES :(");
 		return;
+	}
 
+	LogEvent(COMPONENT_FSAL, "HURRAY.. some states");
 	glist_for_each_safe(glist, glistn, &ostate->file.list_of_states) {
 		state = glist_entry(glist, state_t, state_list);
 		if (state->state_type > STATE_TYPE_LAYOUT)

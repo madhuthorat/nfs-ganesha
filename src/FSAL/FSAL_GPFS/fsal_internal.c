@@ -164,9 +164,9 @@ fsal_internal_get_handle_at(int dfd, const char *fs_name,
 	 * Till we don't have a fix from GPFS for this issue we will set the
 	 * handle_size to 48 in case GPFS returned handle with handle_size=40.
 	 */
-	if (harg.handle->handle_size == 40) {
-		harg.handle->handle_size = 48;
-	}
+//	if (harg.handle->handle_size == 40) {
+//		harg.handle->handle_size = 48;
+//	}
 
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

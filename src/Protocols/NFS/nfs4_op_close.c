@@ -240,6 +240,9 @@ int nfs4_op_close(struct nfs_argop4 *op, compound_data_t *data,
 
 	PTHREAD_RWLOCK_wrlock(&data->current_obj->state_hdl->state_lock);
 
+	LogEvent(COMPONENT_FSAL, "not taking lock: data->current_obj: %p", data->current_obj);
+//	sleep(10);
+//	LogEvent(COMPONENT_FSAL, "Woke up");
 	/* Check is held locks remain */
 	glist_for_each(glist, &state_found->state_data.share.share_lockstates) {
 		state_t *lock_state =

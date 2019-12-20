@@ -253,9 +253,21 @@ int nfs4_op_putfh(struct nfs_argop4 *op, compound_data_t *data,
 	PUTFH4args * const arg_PUTFH4 = &op->nfs_argop4_u.opputfh;
 	/* Convenience alias for resopnse */
 	PUTFH4res * const res_PUTFH4 = &resp->nfs_resop4_u.opputfh;
-
+	struct nfs_argop4 *next_op = (struct nfs_argop4 *)((char*)op + sizeof(struct nfs_argop4));
+	
+	LogEvent(COMPONENT_FSAL, "NEXT_OP->ARGOP: %d, next_op:%p, sizeof(next_op): %d", next_op->argop, next_op, (int)(sizeof(struct nfs_argop4)));
+#if 1 
+	if (next_op->argop == 4) {
+		LogEvent(COMPONENT_FSAL, "SLEEPING");
+		//sleep(20);
+		LogEvent(COMPONENT_FSAL, "WOKE UP");
+	}
+#endif
 	resp->resop = NFS4_OP_PUTFH;
 
+//	LogEvent(COMPONENT_FSAL, "Sleeping..");
+//	sleep(10);
+//	LogEvent(COMPONENT_FSAL, "Woke up..");
 	/* First check the handle.  If it is rubbish, we go no further
 	 */
 	res_PUTFH4->status = nfs4_Is_Fh_Invalid(&arg_PUTFH4->object);
@@ -279,7 +291,13 @@ int nfs4_op_putfh(struct nfs_argop4 *op, compound_data_t *data,
 		res_PUTFH4->status = nfs4_ds_putfh(data);
 	else
 		res_PUTFH4->status = nfs4_mds_putfh(data);
-
+#if 0
+        if (next_op->argop == 4) {
+                LogEvent(COMPONENT_FSAL, "SLEEPING");
+                sleep(10);
+                LogEvent(COMPONENT_FSAL, "WOKE UP");
+        }
+#endif
 	return res_PUTFH4->status;
 }				/* nfs4_op_putfh */
 

@@ -64,16 +64,22 @@ GPFSFSAL_unlink(struct fsal_obj_handle *dir_hdl, const char *object_name,
 	status = fsal_internal_stat_name(export_fd, gpfs_hdl->handle,
 					 object_name, &buffxstat.buffstat);
 	if (FSAL_IS_ERROR(status))
-		return status;
+		goto out;
 
   /******************************
    * DELETE FROM THE FILESYSTEM *
    ******************************/
+	//sleep(10);
 	status = fsal_internal_unlink(export_fd, gpfs_hdl->handle,
 				      object_name, &buffxstat.buffstat);
 
 	if (FSAL_IS_ERROR(status))
-		return status;
+		goto out;
 
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
+out:
+//	if (status.major == ERR_FSAL_NOENT)
+//		status.major = ERR_FSAL_STALE;
+	LogEvent(COMPONENT_FSAL, "GPFSFSAL_unlink FAILED for: %s", object_name);
+	return status;
 }

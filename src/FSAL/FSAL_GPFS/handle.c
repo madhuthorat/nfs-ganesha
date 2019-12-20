@@ -76,9 +76,9 @@ struct gpfs_fsal_obj_handle *alloc_handle(struct gpfs_file_handle *fh,
 	 * sure that any client sending us the old 40 byte sized handle
 	 * will be modified here to match its 48 byte sized handle!
 	 */
-	if (hdl->handle->handle_size == 40) {
-		hdl->handle->handle_size = 48;
-	}
+	//if (hdl->handle->handle_size == 40) {
+	//	hdl->handle->handle_size = 48;
+	//}
 
 	hdl->obj_handle.type = attributes->type;
 	if (hdl->obj_handle.type == REGULAR_FILE) {

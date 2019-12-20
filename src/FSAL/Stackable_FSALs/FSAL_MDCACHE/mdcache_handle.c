@@ -1021,7 +1021,7 @@ static fsal_status_t mdcache_unlink(struct fsal_obj_handle *dir_hdl,
 		container_of(obj_hdl, mdcache_entry_t, obj_handle);
 	fsal_status_t status;
 
-	LogFullDebug(COMPONENT_CACHE_INODE,
+	LogEvent(COMPONENT_CACHE_INODE,
 		     "Unlink %p/%s (%p)",
 		     parent, name, entry);
 
@@ -1030,6 +1030,11 @@ static fsal_status_t mdcache_unlink(struct fsal_obj_handle *dir_hdl,
 		return fsalstat(ERR_FSAL_XDEV, 0);
 	}
 
+#if 0
+	LogEvent(COMPONENT_FSAL, "mdcache_unlink: SLEEPING");
+	sleep(10);
+	LogEvent(COMPONENT_FSAL, "mdcache_unlink: WOKE UP");
+#endif
 	subcall(
 		status = parent->sub_handle->obj_ops->unlink(
 			parent->sub_handle, entry->sub_handle, name)

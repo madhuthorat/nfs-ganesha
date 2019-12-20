@@ -1091,6 +1091,7 @@ mdcache_locate_host(struct gsh_buffdesc *fh_desc,
 	status = mdcache_find_keyed(&key, entry);
 
 	if (!FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "FOUND ENTRY: %p, OBJ: %p", *entry, &(*entry)->obj_handle);
 		status = get_optional_attrs(&(*entry)->obj_handle, attrs_out);
 		return status;
 	} else if (status.major != ERR_FSAL_NOENT) {
@@ -3451,14 +3452,14 @@ _mdcache_kill_entry(mdcache_entry_t *entry,
 {
 	bool freed;
 
-	if (isDebug(COMPONENT_CACHE_INODE)) {
+//	if (isDebug(COMPONENT_CACHE_INODE)) {
 		DisplayLogComponentLevel(COMPONENT_CACHE_INODE,
 					 file, line, function, NIV_DEBUG,
 					 "Kill %s entry %p obj_handle %p",
 					 object_file_type_to_str(
 							entry->obj_handle.type),
 					 entry, &entry->obj_handle);
-	}
+//	}
 
 	freed = cih_remove_checked(entry); /* !reachable, drop sentinel ref */
 #ifdef USE_LTTNG
