@@ -2021,6 +2021,7 @@ _mdcache_lru_unref(mdcache_entry_t *entry, uint32_t flags, const char *func,
 		QUNLOCK(qlane);
 
 		mdcache_lru_clean(entry);
+		entry->obj_handle.state_hdl = NULL;
 		pool_free(mdcache_entry_pool, entry);
 		freed = true;
 
