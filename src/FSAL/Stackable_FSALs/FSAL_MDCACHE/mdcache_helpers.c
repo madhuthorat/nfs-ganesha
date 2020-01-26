@@ -2949,6 +2949,13 @@ again:
 					    chunk_list);
 	}
 
+	if ((*dirent)->chunk != state.first_chunk) {
+		LogEvent(COMPONENT_CACHE_INODE, "state.first_chunk: %p, ref: %d, chunk: %p, ref: %d, state.cur_chunk :%p, ref: %d and dirent->chunk: %p, ref: %d",
+		state.first_chunk, atomic_fetch_int32_t(&state.first_chunk->chunk_lru.refcnt),
+		chunk, atomic_fetch_int32_t(&chunk->chunk_lru.refcnt),
+		state.cur_chunk, atomic_fetch_int32_t(&state.cur_chunk->chunk_lru.refcnt),
+		(*dirent)->chunk, atomic_fetch_int32_t(&(*dirent)->chunk->chunk_lru.refcnt));
+	}
 	LogDebugAlt(COMPONENT_NFS_READDIR, COMPONENT_CACHE_INODE,
 		    "status=%s",
 		    fsal_err_txt(status));
@@ -2985,10 +2992,11 @@ fsal_status_t mdcache_readdir_chunked(mdcache_entry_t *directory,
 	mdcache_dir_entry_t *dirent = NULL;
 	bool has_write, set_first_ck;
 	fsal_cookie_t next_ck = whence, look_ck = whence;
-	struct dir_chunk *chunk = NULL;
+	struct dir_chunk *chunk = NULL, *curr_chunk = NULL;
 	bool first_pass = true;
 	bool eod = false;
 	bool reload_chunk = false;
+	int32_t refcnt;
 
 #ifdef USE_LTTNG
 	tracepoint(mdcache, mdc_readdir,
@@ -3211,13 +3219,20 @@ again:
 	 * and all final ref drops are done with it held for write. */
 	mdcache_lru_unref_chunk(chunk);
 
+	refcnt = atomic_fetch_int32_t(&chunk->chunk_lru.refcnt);
+	if (unlikely (refcnt <= 0)) {
+		LogEvent(COMPONENT_CACHE_INODE, "chunk: %p, refcnt: %d", chunk, refcnt);
+	}
+
+	curr_chunk = chunk;
+
 	LogFullDebugAlt(COMPONENT_NFS_READDIR, COMPONENT_CACHE_INODE,
 			"About to read directory=%p cookie=%" PRIx64,
 			directory, next_ck);
 
 	/* Now satisfy the request from the cached readdir--stop when either
 	 * the requested sequence or dirent sequence is exhausted */
-
+	struct dir_chunk *dir_chunk = NULL;
 	for (;
 	     dirent != NULL;
 	     dirent = glist_next_entry(&chunk->dirents,
@@ -3228,6 +3243,16 @@ again:
 		enum fsal_dir_result cb_result;
 		mdcache_entry_t *entry = NULL;
 		struct attrlist attrs;
+
+		dir_chunk = dirent->chunk;
+		if (dir_chunk != chunk) {
+			LogEvent(COMPONENT_CACHE_INODE, "dir_chunk: %p, refcnt: %d", dir_chunk, atomic_fetch_int32_t(&dir_chunk->chunk_lru.refcnt));
+		}
+
+		refcnt = atomic_fetch_int32_t(&chunk->chunk_lru.refcnt);
+		if (unlikely(refcnt <= 0)) {
+			LogEvent(COMPONENT_CACHE_INODE, "dir_chunk: %p, refcnt: %d, curr_chunk: %p", dir_chunk, refcnt, curr_chunk);
+		}
 
 		if (dirent->flags & DIR_ENTRY_FLAG_DELETED) {
 			/* Skip deleted entries */
