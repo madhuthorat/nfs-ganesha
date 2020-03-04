@@ -517,6 +517,7 @@ fsal_status_t mdcache_dirent_add(mdcache_entry_t *parent,
 				 bool *invalidate);
 
 void mdcache_dirent_invalidate_all(mdcache_entry_t *entry);
+void mdcache_dirent_invalidate_all_f(mdcache_entry_t *entry, bool print_bt);
 
 fsal_status_t mdcache_readdir_uncached(mdcache_entry_t *directory, fsal_cookie_t
 				       *whence, void *dir_state,
@@ -565,7 +566,7 @@ static inline struct mdcache_fsal_export *mdc_cur_export(void)
 	return mdc_export(op_ctx->fsal_export);
 }
 
-void mdc_clean_entry(mdcache_entry_t *entry);
+void mdc_clean_entry(mdcache_entry_t *entry, bool print_bt);
 fsal_status_t mdc_check_mapping(mdcache_entry_t *entry);
 void _mdcache_kill_entry(mdcache_entry_t *entry,
 			 char *file, int line, char *function);

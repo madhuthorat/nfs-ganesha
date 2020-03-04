@@ -461,7 +461,7 @@ lru_insert_chunk(struct dir_chunk *chunk, struct lru_q *q, enum lru_edge edge)
  * @param[in] entry  The entry to clean
  */
 static inline void
-mdcache_lru_clean(mdcache_entry_t *entry)
+mdcache_lru_clean(mdcache_entry_t *entry, bool print_bt)
 {
 	fsal_status_t status = {0, 0};
 
@@ -596,7 +596,7 @@ mdcache_lru_clean(mdcache_entry_t *entry)
 	fsal_release_attrs(&entry->attrs);
 
 	/* Clean out the export mapping before deconstruction */
-	mdc_clean_entry(entry);
+	mdc_clean_entry(entry, print_bt);
 
 	/* Clean our handle */
 	fsal_obj_handle_fini(&entry->obj_handle);
@@ -808,6 +808,7 @@ lru_reap_chunk_impl(enum lru_q_id qid, mdcache_entry_t *parent)
 		chunk = container_of(lru, struct dir_chunk, chunk_lru);
 		entry = chunk->parent;
 
+		assert (entry->obj_handle.type == DIRECTORY);
 		/* We need entry's content_lock to clean this chunk.
 		 * The usual lock order is content_lock followed by
 		 * chunk QLANE lock. Here we already have chunk QLANE
@@ -1838,7 +1839,7 @@ mdcache_entry_t *mdcache_lru_get(struct fsal_obj_handle *sub_handle)
 	if (lru) {
 		/* we uniquely hold entry */
 		nentry = container_of(lru, mdcache_entry_t, lru);
-		mdcache_lru_clean(nentry);
+		mdcache_lru_clean(nentry, true);
 		memset(&nentry->attrs, 0, sizeof(nentry->attrs));
 		init_rw_locks(nentry);
 	} else {
@@ -2024,7 +2025,7 @@ _mdcache_lru_unref(mdcache_entry_t *entry, uint32_t flags, const char *func,
 
 		QUNLOCK(qlane);
 
-		mdcache_lru_clean(entry);
+		mdcache_lru_clean(entry, true);
 		pool_free(mdcache_entry_pool, entry);
 		freed = true;
 
@@ -2066,13 +2067,19 @@ void _mdcache_lru_ref_chunk(struct dir_chunk *chunk, const char *func, int line)
 	atomic_inc_int32_t(&chunk->chunk_lru.refcnt);
 }
 
+void _mdcache_lru_unref_chunk(struct dir_chunk *chunk, const char *func,
+			      int line)
+{
+	_mdcache_lru_unref_chunk_f(chunk, false, func, line);
+}
+
 /**
  * @brief Unref a dirent chunk
  * Should be called with content_lock held in write mode.
  * @param [in] chunk	The chunk to unref
  */
-void _mdcache_lru_unref_chunk(struct dir_chunk *chunk, const char *func,
-			      int line)
+void _mdcache_lru_unref_chunk_f(struct dir_chunk *chunk, bool print_bt,
+				const char *func, int line)
 {
 	int refcnt;
 	uint32_t lane;
@@ -2092,6 +2099,9 @@ void _mdcache_lru_unref_chunk(struct dir_chunk *chunk, const char *func,
 		/* And now we can free the chunk. */
 		LogFullDebug(COMPONENT_CACHE_INODE, "Freeing chunk %p", chunk);
 		gsh_free(chunk);
+	} else {
+		if (print_bt)
+			gsh_backtrace();
 	}
 	QUNLOCK(qlane);
 }

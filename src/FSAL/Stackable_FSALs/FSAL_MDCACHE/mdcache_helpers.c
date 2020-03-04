@@ -266,7 +266,7 @@ static void mdc_unref_chunk_dirents(struct dir_chunk *chunk,
  *
  * @param[in]  entry     The cache entry to clean
  */
-void mdc_clean_entry(mdcache_entry_t *entry)
+void mdc_clean_entry(mdcache_entry_t *entry, bool print_bt)
 {
 	struct glist_head *glist;
 	struct glist_head *glistn;
@@ -299,7 +299,7 @@ void mdc_clean_entry(mdcache_entry_t *entry)
 		PTHREAD_RWLOCK_wrlock(&entry->content_lock);
 
 		/* Clean up dirents */
-		mdcache_dirent_invalidate_all(entry);
+		mdcache_dirent_invalidate_all_f(entry, print_bt);
 		/* Clean up parent key */
 		mdcache_free_fh(&entry->fsobj.fsdir.parent);
 
@@ -585,7 +585,7 @@ void mdcache_clean_dirent_chunk(struct dir_chunk *chunk)
  *
  */
 
-void mdcache_clean_dirent_chunks(mdcache_entry_t *entry)
+void mdcache_clean_dirent_chunks(mdcache_entry_t *entry, bool print_bt)
 {
 	struct glist_head *glist, *glistn;
 
@@ -593,9 +593,14 @@ void mdcache_clean_dirent_chunks(mdcache_entry_t *entry)
 	assert(entry->content_lock.__data.__writer);
 #endif
 	glist_for_each_safe(glist, glistn, &entry->fsobj.fsdir.chunks) {
-		mdcache_lru_unref_chunk(glist_entry(glist, struct dir_chunk,
-						    chunks));
+		mdcache_lru_unref_chunk_f(glist_entry(glist, struct dir_chunk,
+						    chunks), print_bt);
 	}
+}
+
+void mdcache_dirent_invalidate_all(mdcache_entry_t *entry)
+{
+	mdcache_dirent_invalidate_all_f(entry, false);
 }
 
 /**
@@ -609,7 +614,7 @@ void mdcache_clean_dirent_chunks(mdcache_entry_t *entry)
  *
  */
 
-void mdcache_dirent_invalidate_all(mdcache_entry_t *entry)
+void mdcache_dirent_invalidate_all_f(mdcache_entry_t *entry, bool print_bt)
 {
 	LogFullDebugAlt(COMPONENT_NFS_READDIR, COMPONENT_CACHE_INODE,
 			"Invalidating directory for %p, clearing MDCACHE_DIR_POPULATED setting MDCACHE_TRUST_CONTENT and MDCACHE_TRUST_DIR_CHUNKS",
@@ -618,7 +623,7 @@ void mdcache_dirent_invalidate_all(mdcache_entry_t *entry)
 	/* Clean the chunks first, that will clean most of the active
 	 * entries also.
 	 */
-	mdcache_clean_dirent_chunks(entry);
+	mdcache_clean_dirent_chunks(entry, print_bt);
 
 	/* Clean the active and deleted trees */
 	mdcache_avl_clean_trees(entry);

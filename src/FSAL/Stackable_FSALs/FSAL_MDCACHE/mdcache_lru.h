@@ -204,6 +204,11 @@ void _mdcache_lru_ref_chunk(struct dir_chunk *chunk, const char *func,
 	_mdcache_lru_unref_chunk(chunk, __func__, __LINE__)
 void _mdcache_lru_unref_chunk(struct dir_chunk *chunk, const char *func,
 			      int line);
+#define mdcache_lru_unref_chunk_f(chunk, flag) \
+	_mdcache_lru_unref_chunk_f(chunk, flag, __func__, __LINE__)
+void _mdcache_lru_unref_chunk_f(struct dir_chunk *chunk, bool print_bt,
+				const char *func, int line);
+
 struct dir_chunk *mdcache_get_chunk(mdcache_entry_t *parent,
 				    struct dir_chunk *prev_chunk,
 				    fsal_cookie_t whence);
