@@ -136,7 +136,10 @@ int nlm4_Lock(nfs_arg_t *args, struct svc_req *req, nfs_res_t *res)
 
 	/* Check if v4 delegations conflict with v3 op */
 	PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock);
+	/* Make sure we don't do cleanup holding the state_lock. */
+	obj->state_hdl->no_cleanup = true;
 	if (state_deleg_conflict(obj, lock.lock_type == FSAL_LOCK_W)) {
+		obj->state_hdl->no_cleanup = false;
 		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
 		LogDebug(COMPONENT_NLM,
 			 "NLM lock request DROPPED due to delegation conflict");
@@ -144,6 +147,7 @@ int nlm4_Lock(nfs_arg_t *args, struct svc_req *req, nfs_res_t *res)
 		goto out;
 	} else {
 		(void) atomic_inc_uint32_t(&obj->state_hdl->file.anon_ops);
+		obj->state_hdl->no_cleanup = false;
 		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
 	}
 
