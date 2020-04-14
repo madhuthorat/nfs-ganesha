@@ -146,7 +146,7 @@ int nfs4_op_layoutcommit(struct nfs_argop4 *op, compound_data_t *data,
 
 	arg.type = layout_state->state_data.layout.state_layout_type;
 
-	PTHREAD_RWLOCK_wrlock(&data->current_obj->state_hdl->state_lock);
+	get_wrstatelock_set_nocleanup(data->current_obj->state_hdl);
 	glist_for_each(glist, &layout_state->state_data.layout.state_segments) {
 		segment = glist_entry(glist,
 				      state_layout_segment_t,
@@ -163,8 +163,8 @@ int nfs4_op_layoutcommit(struct nfs_argop4 *op, compound_data_t *data,
 						&res);
 
 		if (nfs_status != NFS4_OK) {
-			PTHREAD_RWLOCK_unlock(
-				&data->current_obj->state_hdl->state_lock);
+			drop_statelock_clear_nocleanup(
+				data->current_obj->state_hdl);
 			goto out;
 		}
 
@@ -176,7 +176,7 @@ int nfs4_op_layoutcommit(struct nfs_argop4 *op, compound_data_t *data,
 		xdr_setpos(&lou_body, beginning);
 	}
 
-	PTHREAD_RWLOCK_unlock(&data->current_obj->state_hdl->state_lock);
+	drop_statelock_clear_nocleanup(data->current_obj->state_hdl);
 
 	resok->locr_newsize.ns_sizechanged = res.size_supplied;
 
