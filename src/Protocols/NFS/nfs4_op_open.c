@@ -873,7 +873,7 @@ static void open4_ex(OPEN4args *arg,
 
 	if (file_obj != NULL) {
 		/* Go ahead and take the state lock now. */
-		PTHREAD_RWLOCK_wrlock(&file_obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_wrlock(&file_obj->state_hdl->state_lock); //done_stchecked
 		state_lock_held = true;
 
 		/* Make sure we don't do cleanup holding the state_lock.
@@ -1005,7 +1005,7 @@ static void open4_ex(OPEN4args *arg,
 	if (file_obj == NULL) {
 		/* We have a new cache inode entry, take the state lock. */
 		file_obj = out_obj;
-		PTHREAD_RWLOCK_wrlock(&file_obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_wrlock(&file_obj->state_hdl->state_lock); //done_stchecked
 		/* Make sure we don't do cleanup holding the state_lock. */
 		file_obj->state_hdl->no_cleanup = true;
 		state_lock_held = true;
@@ -1094,7 +1094,7 @@ static void open4_ex(OPEN4args *arg,
 			 */
 			file_obj->state_hdl->no_cleanup = false;
 			state_lock_held = false;
-			PTHREAD_RWLOCK_unlock(&file_obj->state_hdl->state_lock);
+			PTHREAD_RWLOCK_unlock(&file_obj->state_hdl->state_lock); //done_stchecked
 
 			/* Release the extra LRU reference on file_obj. */
 			file_obj->obj_ops->put_ref(file_obj);
@@ -1149,7 +1149,7 @@ static void open4_ex(OPEN4args *arg,
 
 	if (state_lock_held) {
 		file_obj->state_hdl->no_cleanup = false;
-		PTHREAD_RWLOCK_unlock(&file_obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_unlock(&file_obj->state_hdl->state_lock); //done_stchecked
 	}
 
 	if (filename)

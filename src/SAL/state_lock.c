@@ -1133,7 +1133,7 @@ static state_status_t subtract_lock_from_list(state_owner_t *owner,
 		}
 	} else {
 		/* free the enttries on the remove_list */
-		free_list(&remove_list);
+		free_list(&remove_list); //doubtful state_lock
 
 		/* now add the split lock list */
 		glist_add_list_tail(list, &split_lock_list);
@@ -1693,7 +1693,7 @@ void state_complete_grant(state_cookie_entry_t *cookie_entry)
 	 * entry MUST be pinned.
 	 */
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	/* We need to make sure lock is ready to be granted */
 	if (lock_entry->sle_blocked == STATE_GRANTING) {
@@ -1702,7 +1702,7 @@ void state_complete_grant(state_cookie_entry_t *cookie_entry)
 
 		/* Merge any touching or overlapping locks into this one. */
 		LogEntry("Granted, merging locks for", lock_entry);
-		merge_lock_entry(obj->state_hdl, lock_entry);
+		merge_lock_entry(obj->state_hdl, lock_entry);  //doubtful state_lock
 
 		LogEntry("Granted entry", lock_entry);
 
@@ -1714,9 +1714,9 @@ void state_complete_grant(state_cookie_entry_t *cookie_entry)
 	 * If somehow the lock was unlocked/canceled while the GRANT
 	 * was in progress, this will completely clean up the lock.
 	 */
-	free_cookie(cookie_entry, true);
+	free_cookie(cookie_entry, true); //doubtful state_lock
 
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 }
 
 /**
@@ -1802,11 +1802,11 @@ void process_blocked_lock_upcall(state_block_data_t *block_data)
 	state_lock_entry_t *lock_entry = block_data->sbd_lock_entry;
 
 	lock_entry_inc_ref(lock_entry);
-	PTHREAD_RWLOCK_wrlock(&lock_entry->sle_obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&lock_entry->sle_obj->state_hdl->state_lock); //done_stchecked
 
 	try_to_grant_lock(lock_entry);
 
-	PTHREAD_RWLOCK_unlock(&lock_entry->sle_obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&lock_entry->sle_obj->state_hdl->state_lock); //done_stchecked
 	lock_entry_dec_ref(lock_entry);
 }
 
@@ -2035,7 +2035,7 @@ state_status_t state_release_grant(state_cookie_entry_t *cookie_entry)
 	lock_entry = cookie_entry->sce_lock_entry;
 	obj = cookie_entry->sce_obj;
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	/* We need to make sure lock is only "granted" once...
 	 * It's (remotely) possible that due to latency, we might end up
@@ -2078,7 +2078,7 @@ state_status_t state_release_grant(state_cookie_entry_t *cookie_entry)
 	/* Check to see if we can grant any blocked locks. */
 	grant_blocked_locks(obj->state_hdl);
 
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	/* In case all locks have wound up free,
 	 * we must release the object reference.
@@ -2289,7 +2289,7 @@ state_status_t state_test(struct fsal_obj_handle *obj,
 
 	LogLock(COMPONENT_STATE, NIV_FULL_DEBUG, "TEST", obj, owner, lock);
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	found_entry = get_overlapping_entry(obj->state_hdl, owner, lock);
 
@@ -2323,7 +2323,7 @@ state_status_t state_test(struct fsal_obj_handle *obj,
 	if (isFullDebug(COMPONENT_STATE) && isFullDebug(COMPONENT_MEMLEAKS))
 		LogList("Lock List", obj, &obj->state_hdl->file.lock_list);
 
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	return status;
 }
@@ -2710,7 +2710,7 @@ state_status_t state_unlock(struct fsal_obj_handle *obj,
 		return STATE_BAD_TYPE;
 	}
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	/* If lock list is empty, there really isn't any work for us to do. */
 	if (glist_empty(&obj->state_hdl->file.lock_list)) {
@@ -2737,7 +2737,7 @@ state_status_t state_unlock(struct fsal_obj_handle *obj,
 	/* Release the lock from cache inode lock list for entry */
 	status = subtract_lock_from_list(owner, state_applies, nsm_state, lock,
 					 &removed,
-					 &obj->state_hdl->file.lock_list);
+					 &obj->state_hdl->file.lock_list); //doubtful state_lock
 
 	/* If the lock list has become zero; decrement the pin ref count pt
 	 * placed. Do this here just in case subtract_lock_from_list has made
@@ -2793,7 +2793,7 @@ state_status_t state_unlock(struct fsal_obj_handle *obj,
 		dump_all_locks("All locks (after unlock)");
 
  out_unlock:
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	return status;
 }
@@ -2820,7 +2820,7 @@ state_status_t state_cancel(struct fsal_obj_handle *obj,
 		return STATE_BAD_TYPE;
 	}
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	/* If lock list is empty, there really isn't any work for us to do. */
 	if (glist_empty(&obj->state_hdl->file.lock_list)) {
@@ -2853,7 +2853,7 @@ state_status_t state_cancel(struct fsal_obj_handle *obj,
 	}
 
  out_unlock:
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	return STATE_SUCCESS;
 }
@@ -3490,11 +3490,11 @@ static void find_blocked_lock_upcall(struct fsal_obj_handle *obj, void *owner,
 	PTHREAD_MUTEX_unlock(&blocked_locks_mutex);
 
 	if (isFullDebug(COMPONENT_STATE) && isFullDebug(COMPONENT_MEMLEAKS)) {
-		PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock); //done_stchecked
 
 		LogList("File Lock List", obj, &obj->state_hdl->file.lock_list);
 
-		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 	}
 
 	/* It is likely that we got an upcall before the cancel request.

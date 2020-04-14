@@ -2300,7 +2300,7 @@ int init_export_root(struct gsh_export *export)
 		}
 	}
 
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 	PTHREAD_RWLOCK_wrlock(&export->lock);
 
 	/* Pass ref off to export */
@@ -2311,7 +2311,7 @@ int init_export_root(struct gsh_export *export)
 	(void) atomic_inc_int32_t(&obj->state_hdl->dir.exp_root_refcount);
 
 	PTHREAD_RWLOCK_unlock(&export->lock);
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	if (isDebug(COMPONENT_EXPORT)) {
 		LogDebug(COMPONENT_EXPORT,
@@ -2355,7 +2355,7 @@ static void release_export(struct gsh_export *export)
 	}
 
 	/* Make the export unreachable as a root object */
-	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_wrlock(&obj->state_hdl->state_lock); //done_stchecked
 	PTHREAD_RWLOCK_wrlock(&export->lock);
 
 	glist_del(&export->exp_root_list);
@@ -2365,7 +2365,7 @@ static void release_export(struct gsh_export *export)
 	(void) atomic_dec_int32_t(&obj->state_hdl->dir.exp_root_refcount);
 
 	PTHREAD_RWLOCK_unlock(&export->lock);
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	LogDebug(COMPONENT_EXPORT,
 		 "Released root obj %p for path %s on export_id=%d",

@@ -1018,12 +1018,12 @@ static inline bool obj_is_junction(struct fsal_obj_handle *obj)
 	if (obj->type != DIRECTORY)
 		return false;
 
-	PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	if ((obj->state_hdl->dir.junction_export != NULL ||
 	     atomic_fetch_int32_t(&obj->state_hdl->dir.exp_root_refcount) != 0))
 		res = true;
-	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+	PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 	return res;
 }

@@ -132,7 +132,7 @@ static nfsstat4 acquire_layout_state(compound_data_t *data,
 		memset(&layout_data, 0, sizeof(layout_data));
 
 		PTHREAD_RWLOCK_wrlock(
-			&data->current_obj->state_hdl->state_lock);
+			&data->current_obj->state_hdl->state_lock); //stcheck_pending
 		lock_held = true;
 
 		/* See if a layout state already exists */
@@ -216,7 +216,7 @@ static nfsstat4 acquire_layout_state(compound_data_t *data,
 
 	if (lock_held)
 		PTHREAD_RWLOCK_unlock(
-			&data->current_obj->state_hdl->state_lock);
+			&data->current_obj->state_hdl->state_lock); //stcheck_pending
 
 	return nfs_status;
 }

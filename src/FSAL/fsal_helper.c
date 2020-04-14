@@ -967,7 +967,7 @@ populate_dirent(const char *name,
 		struct fsal_export *saved_export;
 		struct attrlist attrs2;
 
-		PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_rdlock(&obj->state_hdl->state_lock); //done_stchecked
 
 		/* Get a reference to the junction_export and remember it
 		 * only if the junction export is valid.
@@ -978,7 +978,7 @@ populate_dirent(const char *name,
 			junction_export = obj->state_hdl->dir.junction_export;
 		}
 
-		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock);
+		PTHREAD_RWLOCK_unlock(&obj->state_hdl->state_lock); //done_stchecked
 
 		/* Get the root of the export across the junction. */
 		if (junction_export != NULL) {

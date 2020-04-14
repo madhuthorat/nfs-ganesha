@@ -112,7 +112,7 @@ int nfs4_op_secinfo(struct nfs_argop4 *op, compound_data_t *data,
 	}
 
 	/* Get state lock for junction_export */
-	PTHREAD_RWLOCK_rdlock(&obj_src->state_hdl->state_lock);
+	PTHREAD_RWLOCK_rdlock(&obj_src->state_hdl->state_lock); //done_stchecked
 
 	if (obj_src->type == DIRECTORY &&
 	    obj_src->state_hdl->dir.junction_export != NULL) {
@@ -129,13 +129,13 @@ int nfs4_op_secinfo(struct nfs_argop4 *op, compound_data_t *data,
 				 junction_export->export_id,
 				 junction_export->pseudopath);
 			res_SECINFO4->status = NFS4ERR_STALE;
-			PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock);
+			PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock); //done_stchecked
 			goto out;
 		}
 
 		get_gsh_export_ref(junction_export);
 
-		PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock);
+		PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock); //done_stchecked
 
 		/* Save the compound data context */
 		save_export_perms = *op_ctx->export_perms;
@@ -190,7 +190,7 @@ int nfs4_op_secinfo(struct nfs_argop4 *op, compound_data_t *data,
 		obj_src = obj;
 	} else {
 		/* Not a junction, release lock */
-		PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock);
+		PTHREAD_RWLOCK_unlock(&obj_src->state_hdl->state_lock); //done_stchecked
 	}
 
 	/* Get the number of entries */
