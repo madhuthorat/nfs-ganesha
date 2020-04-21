@@ -22,11 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-option(SANITIZE_ADDRESS "Enable AddressSanitizer for sanitized targets." Off)
+option(SANITIZE_ADDRESS "Enable AddressSanitizer for sanitized targets." On)
 
 set(FLAG_CANDIDATES
     # Clang 3.2+ use this version. The no-omit-frame-pointer option is optional.
-    "-g -fsanitize=address -fno-omit-frame-pointer"
+    "-g -fsanitize=address -fno-omit-frame-pointer -fsanitize-recover=address"
     "-g -fsanitize=address"
 
     # Older deprecated flag for ASan
