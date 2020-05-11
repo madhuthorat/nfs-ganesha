@@ -83,10 +83,13 @@ void nfs4_acl_free(fsal_acl_t *acl)
 	pool_free(fsal_acl_pool, acl);
 }
 
+#define GPFS_ACL_MAX_NACES 638
 void nfs4_acl_entry_inc_ref(fsal_acl_t *acl)
 {
 	/* Increase ref counter */
 	PTHREAD_RWLOCK_wrlock(&acl->lock);
+	if (acl->naces > GPFS_ACL_MAX_NACES || acl->ref == 0)
+		abort();
 	acl->ref++;
 	LogDebug(COMPONENT_NFS_V4_ACL, "(acl, ref) = (%p, %u)", acl, acl->ref);
 	PTHREAD_RWLOCK_unlock(&acl->lock);
@@ -96,6 +99,8 @@ void nfs4_acl_entry_inc_ref(fsal_acl_t *acl)
 static void nfs4_acl_entry_dec_ref(fsal_acl_t *acl)
 {
 	/* Decrease ref counter */
+	if (acl->naces > GPFS_ACL_MAX_NACES || acl->ref == 0)
+		abort();
 	acl->ref--;
 	LogDebug(COMPONENT_NFS_V4_ACL, "(acl, ref) = (%p, %u)", acl, acl->ref);
 }
