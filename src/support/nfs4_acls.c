@@ -83,21 +83,28 @@ void nfs4_acl_free(fsal_acl_t *acl)
 	pool_free(fsal_acl_pool, acl);
 }
 
+#define GPFS_ACL_MAX_NACES 638
 void nfs4_acl_entry_inc_ref(fsal_acl_t *acl)
 {
+	int32_t ref;
+	uint32_t naces;
 	/* Increase ref counter */
 	PTHREAD_RWLOCK_wrlock(&acl->lock);
-	acl->ref++;
-	LogDebug(COMPONENT_NFS_V4_ACL, "(acl, ref) = (%p, %u)", acl, acl->ref);
+	ref = acl->ref++;
+	naces = acl->naces;
 	PTHREAD_RWLOCK_unlock(&acl->lock);
+
+	if (naces > GPFS_ACL_MAX_NACES || ref < 1)
+		abort();
+	LogEvent(COMPONENT_NFS_V4_ACL, "Before increment (acl, ref) = (%p, %u)", acl, ref);
 }
 
 /* Should be called with lock held. */
-static void nfs4_acl_entry_dec_ref(fsal_acl_t *acl)
+static int32_t nfs4_acl_entry_dec_ref(fsal_acl_t *acl)
 {
 	/* Decrease ref counter */
-	acl->ref--;
-	LogDebug(COMPONENT_NFS_V4_ACL, "(acl, ref) = (%p, %u)", acl, acl->ref);
+	int32_t ref = acl->ref--;
+	return ref;
 }
 
 fsal_acl_t *nfs4_acl_new_entry(fsal_acl_data_t *acldata,
@@ -183,14 +190,21 @@ fsal_acl_status_t nfs4_acl_release_entry(fsal_acl_t *acl)
 	int rc;
 	struct hash_latch latch;
 	fsal_acl_status_t status = NFS_V4_ACL_SUCCESS;
+	int32_t ref;
+	uint32_t naces;
 
 	if (!acl)
 		return status;
 
 	PTHREAD_RWLOCK_wrlock(&acl->lock);
 	if (acl->ref > 1) {
-		nfs4_acl_entry_dec_ref(acl);
+		ref = nfs4_acl_entry_dec_ref(acl);
+		naces = acl->naces;
 		PTHREAD_RWLOCK_unlock(&acl->lock);
+
+		if (naces > GPFS_ACL_MAX_NACES || ref <= 0)
+			abort();
+		LogEvent(COMPONENT_NFS_V4_ACL, "Before decrement (acl, ref) = (%p, %u)", acl, ref);
 		return status;
 	} else
 		LogDebug(COMPONENT_NFS_V4_ACL, "Free ACL %p", acl);
@@ -210,11 +224,15 @@ fsal_acl_status_t nfs4_acl_release_entry(fsal_acl_t *acl)
 
 	case HASHTABLE_SUCCESS:
 		PTHREAD_RWLOCK_wrlock(&acl->lock);
-		nfs4_acl_entry_dec_ref(acl);
+		ref = nfs4_acl_entry_dec_ref(acl);
+		naces = acl->naces;
 		if (acl->ref != 0) {
 			/* Did not actually release last reference */
 			hashtable_releaselatched(fsal_acl_hash, &latch);
 			PTHREAD_RWLOCK_unlock(&acl->lock);
+			if (naces > GPFS_ACL_MAX_NACES || ref <= 0)
+				abort();
+			LogEvent(COMPONENT_NFS_V4_ACL, "Before decrement (acl, ref) = (%p, %u)", acl, ref);
 			return status;
 		}
 
@@ -238,6 +256,9 @@ fsal_acl_status_t nfs4_acl_release_entry(fsal_acl_t *acl)
 	assert(old_value.addr == acl);
 
 	PTHREAD_RWLOCK_unlock(&acl->lock);
+	if (naces > GPFS_ACL_MAX_NACES || ref <= 0)
+		abort();
+	LogEvent(COMPONENT_NFS_V4_ACL, "Before decrement (acl, ref) = (%p, %u)", acl, ref);
 
 	/* Release acl */
 	nfs4_acl_free(acl);

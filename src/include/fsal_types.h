@@ -213,7 +213,7 @@ typedef struct fsal_acl__ {
 	uint32_t naces;
 	fsal_ace_t *aces;
 	pthread_rwlock_t lock;
-	uint32_t ref;
+	int32_t ref;
 } fsal_acl_t;
 
 typedef struct fsal_acl_data__ {

@@ -593,7 +593,9 @@ mdcache_lru_clean(mdcache_entry_t *entry)
 	}
 
 	/* Done with the attrs */
+	LogEvent(COMPONENT_CACHE_INODE, "Calling fsal_release_attrs() for entry: %p, acl: %p", entry, entry->attrs.acl);
 	fsal_release_attrs(&entry->attrs);
+	LogEvent(COMPONENT_CACHE_INODE, "Done with fsal_release_attrs() for entry: %p, acl: %p", entry, entry->attrs.acl);
 
 	/* Clean out the export mapping before deconstruction */
 	mdc_clean_entry(entry);
