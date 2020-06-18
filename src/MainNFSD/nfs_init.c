@@ -973,13 +973,27 @@ void nfs_init_complete(void)
 	PTHREAD_MUTEX_unlock(&nfs_init.init_mutex);
 }
 
-void nfs_init_wait(void)
+int nfs_init_wait(int timeout)
 {
+	int rc = 0;
+
 	PTHREAD_MUTEX_lock(&nfs_init.init_mutex);
-	while (!nfs_init.init_complete) {
-		pthread_cond_wait(&nfs_init.init_cond, &nfs_init.init_mutex);
+	if (!timeout) {
+		while (!nfs_init.init_complete) {
+			pthread_cond_wait(&nfs_init.init_cond,
+					  &nfs_init.init_mutex);
+		}
+	} else {
+		struct timespec ts;
+
+		ts.tv_sec = time(NULL) + timeout;
+		ts.tv_nsec = 0;
+		rc = pthread_cond_timedwait(&nfs_init.init_cond,
+					    &nfs_init.init_mutex, &ts);
 	}
 	PTHREAD_MUTEX_unlock(&nfs_init.init_mutex);
+
+	return rc;
 }
 
 bool nfs_health(void)
