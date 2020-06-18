@@ -1322,7 +1322,7 @@ lru_run(struct fridgethr_context *ctx)
 
 	if (first_time) {
 		/* Wait for NFS server to properly initialize */
-		nfs_init_wait();
+		nfs_init_wait(0);
 		first_time = FALSE;
 	}
 
@@ -1581,7 +1581,7 @@ static void chunk_lru_run(struct fridgethr_context *ctx)
 
 	if (first_time) {
 		/* Wait for NFS server to properly initialize */
-		nfs_init_wait();
+		nfs_init_wait(0);
 		first_time = false;
 	}
 
@@ -2321,7 +2321,7 @@ static void dirmap_lru_run(struct fridgethr_context *ctx)
 	 * causing that one to never run again. */
 	if (first_time) {
 		/* Wait for NFS server to properly initialize */
-		nfs_init_wait();
+		nfs_init_wait(0);
 		first_time = false;
 	}
 
