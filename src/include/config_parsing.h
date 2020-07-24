@@ -99,25 +99,26 @@ enum config_type {
  */
 
 struct config_error_type {
-	bool scan:1;		/*< lexer/scanner */
-	bool parse:1;		/*< parser rules */
-	bool init:1;		/*< block initialization */
-	bool fsal:1;		/*< fsal load failure */
-	bool export_:1;		/*< export create failure */
-	bool resource:1;	/*< system resource */
-	bool unique:1;		/*< unique block/param */
-	bool invalid:1;		/*< invalid param value */
-	bool missing:1;		/*< missing mandatory parameter */
-	bool validate:1;	/*< commit param validation */
-	bool exists:1;		/*< block already exists */
-	bool internal:1;        /*< internal error */
-	bool bogus:1;		/*< bogus (deprecated?) param */
-	bool dispose:1;		/*< Not actually an error, but we need to
-				    dispose of the config item anyway. */
-	uint32_t errors;	/*< cumulative error count for parse+proc */
-	char *diag_buf;		/*< buffer for scan+parse+processing msgs */
-	size_t diag_buf_size;	/*< size of diag buffer used by memstream */
-	FILE *fp;		/*< FILE * for memstream */
+	bool scan:1;		   /*< lexer/scanner */
+	bool parse:1;		   /*< parser rules */
+	bool init:1;		   /*< block initialization */
+	bool fsal:1;		   /*< fsal load failure */
+	bool cur_exp_create_err:1; /*< current export create failure */
+	bool all_exp_create_err:1; /*< all exports create failure */
+	bool resource:1;	   /*< system resource */
+	bool unique:1;		   /*< unique block/param */
+	bool invalid:1;		   /*< invalid param value */
+	bool missing:1;		   /*< missing mandatory parameter */
+	bool validate:1;	   /*< commit param validation */
+	bool exists:1;		   /*< block already exists */
+	bool internal:1;	   /*< internal error */
+	bool bogus:1;		   /*< bogus (deprecated?) param */
+	bool dispose:1;		   /*< Not actually an error, but we need to
+				   dispose of the config item anyway. */
+	uint32_t errors;	   /*< cumulative error count for parse+proc */
+	char *diag_buf;		   /*< buffer for scan+parse+processing msgs */
+	size_t diag_buf_size;	   /*< size of diag buffer used by memstream */
+	FILE *fp;		   /*< FILE * for memstream */
 };
 
 /** @brief Error detail decoders
@@ -140,7 +141,8 @@ static inline bool config_error_is_fatal(struct config_error_type *err_type)
 static inline bool config_error_is_crit(struct config_error_type *err_type)
 {
 	return config_error_is_fatal(err_type) || err_type->internal ||
-		err_type->invalid || err_type->export_ || err_type->missing;
+		err_type->invalid || err_type->all_exp_create_err ||
+		err_type->missing;
 }
 
 /**
@@ -150,6 +152,30 @@ static inline bool config_error_is_crit(struct config_error_type *err_type)
 static inline bool config_error_is_harmless(struct config_error_type *err_type)
 {
 	return !(config_error_is_crit(err_type) ||
+		 err_type->unique || err_type->exists || err_type->dispose);
+}
+
+/**
+ * @brief Test for errors that make the processed block unuseable for current
+ *        export
+ */
+
+static inline bool cur_exp_config_error_is_crit(
+					struct config_error_type *err_type)
+{
+	return config_error_is_fatal(err_type) || err_type->internal ||
+		err_type->invalid || err_type->cur_exp_create_err ||
+		err_type->missing;
+}
+
+/**
+ * @brief Test for errors that will not cause problems
+ */
+
+static inline bool cur_exp_config_error_is_harmless(
+					struct config_error_type *err_type)
+{
+	return !(cur_exp_config_error_is_crit(err_type) ||
 		 err_type->unique || err_type->exists || err_type->dispose);
 }
 
