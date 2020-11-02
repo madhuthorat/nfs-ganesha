@@ -102,13 +102,13 @@ SET(ganesha.nfsd_SRCS
    nfs_main.c
 )
 
-add_executable(gpfs.ganesha.nfsd
+add_executable(ganesha.nfsd
   ${ganesha.nfsd_SRCS}
   ${fsal_CORE_SRCS}
 )
-add_sanitizers(gpfs.ganesha.nfsd)
+add_sanitizers(ganesha.nfsd)
 
-target_link_libraries(gpfs.ganesha.nfsd
+target_link_libraries(ganesha.nfsd
   MainServices
   ${PROTOCOLS}
   ${GANESHA_CORE}
@@ -118,7 +118,7 @@ target_link_libraries(gpfs.ganesha.nfsd
   ${LTTNG_LIBRARIES}
 )
 
-install(TARGETS gpfs.ganesha.nfsd COMPONENT daemon DESTINATION bin)
+install(TARGETS ganesha.nfsd COMPONENT daemon DESTINATION bin)
 
 
 ########### install files ###############
